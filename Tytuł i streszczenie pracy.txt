@@ -1,1 +1,3 @@
 Analiza teoretyczna i porównawcza efektywnej pamięciowo, wysoce wydajnej tablicy asocjacyjnej SILT (Small Index Large Table)
+
+SILT (Small Index Large Table) jest efektywną pamięciowo, wysoce wydajną tablicą asocjacyjną. Stanowi alternatywę dla innych struktur danych opracowanych na potrzeby rozwiązania problemu przechowywania par klucz-wartość. Została utworzona z myślą o ograniczeniu i zbalansowaniu zużycia pamięci oraz czasu obliczeń. W swojej pracy chcę skupić się na analizie teoretycznej tej struktury danych oraz na porównaniu jej działania z dostępną w bibliotece standardowej języka C++ funkcją std::map.
