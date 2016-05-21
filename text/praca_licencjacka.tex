@@ -1,0 +1,31 @@
+% Sprawdzić tekst pod kątem napisu TODO
+\documentclass[declaration,shortabstract,masc]{iithesis}
+
+\usepackage[utf8]{inputenc}
+\usepackage{datetime}
+\newcommand{\cpp}{C\raisebox{0.5ex}{{\tiny\textbf{++}}}}
+
+\polishtitle{Analiza teoretyczna i porównawcza\fmlinebreak efektywnej pamięciowo, wysoce wydajnej\fmlinebreak tablicy asocjacyjnej SILT\fmlinebreak (Small Index Large Table)}
+\englishtitle{Theoretical and Comparative Analysis of\fmlinebreak Memory-Efficient, High-Performance\fmlinebreak Associative Array SILT\fmlinebreak (Small Index Large Table)}
+\polishabstract{SILT (Small Index Large Table) jest efektywną pamięciowo, wysoce wydajną tablicą asocjacyjną. Stanowi alternatywę dla innych popularnych struktur danych opracowanych na potrzeby rozwiązania problemu przechowywania par klucz-wartość. Została utworzona z myślą o ograniczeniu i zbalansowaniu zużycia pamięci oraz czasu obliczeń. W swojej pracy chcę się skupić na analizie teoretycznej tej struktury danych oraz na porównaniu jej działania z dostępną w bibliotece standardowej języka \cpp\ funkcją std::map. W ramach analizy opiszę konstrukcję tej struktury obejmującą trzy główne części składowe -- SortedStore, HashStore oraz LogStore, jak również metodę haszowania kukułczego, która jest w niej wykorzystywana. Zaimplementuję tę strukturę danych i zbadam empirycznie jej wydajność. Porównam ją z wynikami teoretycznymi i doświadczalnymi, przedstawionymi przez jej twórców.}
+\englishabstract{\indent SILT (Small Index Large Table) is memory-effective high-performance associative array. It is an alternative for other popular data structures that solve key-value storage problem. It was developed for purpose of reducing and balancing memory usage and computation time. In my thesis I would like to focus on theoretical analysis of this data structure and comparison with \cpp\ standard library's function std::map. As part of analysis I will describe its construction consisting of three main parts\linebreak -- SortedStore, HashStore, LogStore and cuckoo hashing method. I will implement this structure and empirically examine its performance. I will compare it with theoretical and experimental results, shown by its authors.}
+% data TODO
+\author{Paweł Guzewicz}
+\advisor{dr hab. Marek Piotrów}
+\transcriptnum{263664}
+\advisorgen{dr. hab. Marka Piotrowa}
+%\usepackage{graphicx,listings,amsmath,amssymb,amsthm,amsfonts,tikz}
+%\theoremstyle{definition} \newtheorem{definition}{Definition}[chapter]
+%\theoremstyle{remark} \newtheorem{remark}[definition]{Observation}
+%\theoremstyle{plain} \newtheorem{theorem}[definition]{Theorem}
+%\theoremstyle{plain} \newtheorem{lemma}[definition]{Lemma}
+%\renewcommand \qedsymbol {\ensuremath{\square}}
+
+\begin{document}
+	\chapter{Wprowadzenie}
+	\begin{thebibliography}{3}
+		\bibitem{SILT} Hyeontaek Lim, Bin Fan, David G. Andersen, Michael Kaminsky - SILT: A Memory-Efficient, High-Performance Key-Value Store
+		\bibitem{CH} Rasmus Pagh, Flemming Friche Rodler - Cuckoo hashing
+		\bibitem{CHwS} Adam Kirsch, Michael Mitzenmacher, Udi Wieder - More Robust Hashing: Cuckoo Hashing with a Stash
+	\end{thebibliography}
+\end{document}
