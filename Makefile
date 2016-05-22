@@ -3,7 +3,7 @@ ERRORSFLAGS=-Wall -Wextra -Werror -O2
 STANDARDFLAGS=-std=c++11
 LIBRARIES=-lm
 CODE_DIRECTORY=code
-_DEPENDENCIES=Log_store.hpp
+_DEPENDENCIES=debug.hpp Log_store.hpp
 DEPENDENCIES=$(patsubst %,$(CODE_DIRECTORY)/%,$(_DEPENDENCIES))
 _SOURCES=main.cpp Log_store.cpp
 SOURCES=$(patsubst %,$(CODE_DIRECTORY)/%,$(_SOURCES))

@@ -27,6 +27,7 @@
 		</Compiler>
 		<Unit filename="Log_store.cpp" />
 		<Unit filename="Log_store.hpp" />
+		<Unit filename="debug.hpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />

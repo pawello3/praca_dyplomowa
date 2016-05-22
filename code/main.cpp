@@ -1,9 +1,14 @@
-#include <iostream>
+/*
+	Paweł Guzewicz, 263664
+	Praca licencjacka: Analiza teoretyczna i porównawcza efektywnej pamięciowo,
+	wysoce wydajnej tablicy asocjacyjnej SILT (Small Index Large Table)
+*/
+
+#include "Log_store.hpp"
 
 using namespace std;
 
 int main()
 {
-    cout << "Hello world!" << endl;
-    return 0;
+	return 0;
 }
