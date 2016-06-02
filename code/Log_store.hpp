@@ -1,5 +1,6 @@
 /*
 	Paweł Guzewicz, 263664
+	Indywidualne Studia Informatyczno-Matematyczne, Uniwersytet Wrocławski
 	Praca licencjacka: Analiza teoretyczna i porównawcza efektywnej pamięciowo,
 	wysoce wydajnej tablicy asocjacyjnej SILT (Small Index Large Table)
 */
@@ -12,7 +13,6 @@
 
 namespace SILT
 {
-	#define LEFTROTATE_32(a, b) ntohl((((htonl(a) << (b))) | (htonl(a) >> (32-(b)))))
 	struct SILT_key
 	{
 		uint32_t h0;
@@ -24,13 +24,13 @@ namespace SILT
 
 	constexpr uint32_t hash_table_size = 16; // TODO: ustawić rozmiar
 
-	template <typename Key, typename Value>
-	class Log_store
+	template<typename Key, typename Value>
+	class Log_store final
 	{
 		public:
 
 		private:
-			FILE* log_file;
+			FILE* log_store_file;
 
 		public:
 			Log_store(void);
@@ -45,7 +45,8 @@ namespace SILT
 			returned_key);
 			bool look_up(const Key key) const;
 	};
-
 }
+
+#include "Log_store.tpp" // implementacja szablonu
 
 #endif // LOG_STORE_HPP_INCLUDED
