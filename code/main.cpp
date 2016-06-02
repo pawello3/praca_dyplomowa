@@ -9,6 +9,7 @@
 
 int main()
 {
-	SILT::Small_Index_Large_Table<int, double> silt = SILT::Small_Index_Large_Table<int, double>();
+	SILT::Small_Index_Large_Table<int, double> silt =
+	SILT::Small_Index_Large_Table<int, double>();
 	return 0;
 }

@@ -14,11 +14,15 @@ namespace SILT
 	class Sorted_store final
 	{
 		public:
+
 		private:
+
 		public:
 			Sorted_store(void);
 			~Sorted_store(void);
+
 		private:
+
 	};
 }
 

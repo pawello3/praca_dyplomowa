@@ -6,6 +6,7 @@
 */
 
 #include "debug.hpp"
+#include <arpa/inet.h>
 #include <cstring>
 #include <type_traits>
 

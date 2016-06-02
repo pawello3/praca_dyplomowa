@@ -27,8 +27,6 @@ namespace SILT
 	template<typename Key, typename Value>
 	class Log_store final
 	{
-		public:
-
 		private:
 			FILE* log_store_file;
 
@@ -36,14 +34,13 @@ namespace SILT
 			Log_store(void);
 			~Log_store(void);
 
-			Value& get(Key key) const;
+			Value& operator[](Key key) const;
 			void insert(Key key, Value value);
 			void remove(Key key);
 
 		private:
 			static void SHA_1(Key key, uint32_t key_size, SILT_key*
 			returned_key);
-			bool look_up(const Key key) const;
 	};
 }
 

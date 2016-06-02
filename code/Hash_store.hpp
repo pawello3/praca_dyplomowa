@@ -14,11 +14,19 @@ namespace SILT
 	class Hash_store final
 	{
 		public:
+
 		private:
+
 		public:
-			Hash_store(void);
+			Hash_store(Log_store* log_store);
 			~Hash_store(void);
+
+			Value& get(Key key) const;
+			void insert(Key key, Value value);
+			void remove(Key key);
+
 		private:
+			bool look_up(const Key key) const;
 	};
 }
 
