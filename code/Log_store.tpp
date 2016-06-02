@@ -9,9 +9,26 @@
 #include <arpa/inet.h>
 #include <cstring>
 #include <type_traits>
+#include <cstdlib>
 
 #define LEFTROTATE_32(a, b)\
 ntohl((((htonl(a) << (b))) | (htonl(a) >> (32-(b)))))
+
+template<typename Key, typename Value>
+SILT::Log_store<Key, Value>::Log_store(void)
+	:log_store_file(fopen("Log_store.dat", "wb+"))
+{
+	if(log_store_file == nullptr)
+	{
+		fprintf(stderr, "fopen error\n");
+		exit(1);
+	}
+}
+
+template<typename Key, typename Value>
+SILT::Log_store<Key, Value>::~Log_store(void)
+{
+}
 
 template<typename Key, typename Value>
 void SILT::Log_store<Key, Value>::SHA_1(Key key, uint32_t key_size,

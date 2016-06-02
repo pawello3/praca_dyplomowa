@@ -9,7 +9,12 @@
 
 int main()
 {
-	SILT::Small_Index_Large_Table<int, double> silt =
-	SILT::Small_Index_Large_Table<int, double>();
+	SILT::Small_Index_Large_Table<int, double> silt
+	= SILT::Small_Index_Large_Table<int, double>();
+	SILT::Log_store<int, double> log_store = SILT::Log_store<int, double>();
+	SILT::Hash_store<int, double> hash_store
+	= SILT::Hash_store<int, double>(&log_store);
+	//SILT::Sorted_store<int, double> sorted_store
+	//= SILT::Sorted_store<int, double>(hash_store_list);
 	return 0;
 }

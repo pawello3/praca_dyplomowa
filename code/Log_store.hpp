@@ -28,14 +28,16 @@ namespace SILT
 	class Log_store final
 	{
 		private:
-			FILE* log_store_file;
+			FILE* const log_store_file;
 
 		public:
 			Log_store(void);
 			~Log_store(void);
 
 			Value& operator[](Key key) const;
-			void insert(Key key, Value value);
+			bool insert(Key key, Value value); /* zwraca false, gdy nie ma już
+			miejsca na wstawienie nowego elementu; wówczas zamiast ponownego
+			haszowania tablicy, tworzymy nowy log store */
 			void remove(Key key);
 
 		private:

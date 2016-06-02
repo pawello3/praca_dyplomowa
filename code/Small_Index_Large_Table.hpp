@@ -15,40 +15,6 @@
 namespace SILT
 {
 	template<typename Key, typename Value>
-	class Hash_store_list_node
-	{
-		private:
-			Hash_store<Key, Value>* data;
-			Hash_store_list_node<Key, Value>* next;
-
-		public:
-			Hash_store_list<Key, Value>(void);
-			~Hash_store_list<Key, Value>(void);
-
-			Hash_store_list<Key, Value>* get_data(void) const;
-			Hash_store_list_node<Key, Value>* get_next(void) const;
-	};
-
-	template<typename Key, typename Value>
-	class Hash_store_list final
-	{
-		private:
-			Hash_store_list_node<Key, Value>* head;
-			Hash_store_list_node<Key, Value>* last;
-			uint32_t size;
-
-		public:
-			Hash_store_list(void);
-			~Hash_store_list(void);
-
-			Hash_store_list_node<Key, Value>* get_head(void) const;
-			Hash_store_list_node<Key, Value>* get_last(void) const;
-			void prepend(Hash_store_list* new_node);
-			void remove(Hash_store_list* node);
-			uint32_t get_size(void) const;
-	};
-
-	template<typename Key, typename Value>
 	class Small_Index_Large_Table final
 	{
 		private:
