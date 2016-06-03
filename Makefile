@@ -50,6 +50,7 @@ clean:
 	find . -name "*~" -type f -exec rm '{}' \;
 	find . -name "*.save" -type f -exec rm '{}' \;
 	find . -name "*.log" -type f -exec rm '{}' \;
+	find . -name "*.dat" -type f -exec rm '{}' \;
 	- rmdir $(OBJECTS_DIRECTORY)
 	- rm $(EXECUTABLE)
 	- rmdir $(BINARY_FILE_DIRECTORY)

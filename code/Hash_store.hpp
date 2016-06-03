@@ -17,6 +17,7 @@ namespace SILT
 	class Hash_store final
 	{
 		private:
+			static char id[25];
 			static uint32_t first_free_id;
 			FILE* const hash_store_file;
 
@@ -33,28 +34,36 @@ namespace SILT
 			bool look_up(const Key key) const;
 	};
 
+////////////////////////////////////////////////////////////////////////////////
+
+	template<typename Key, typename Value>
+	class Hash_store_list;
+
 	template<typename Key, typename Value>
 	class Hash_store_list_node final
 	{
+		friend class Hash_store_list<Key, Value>;
+
 		private:
 			Hash_store<Key, Value>* data;
+			Hash_store_list_node<Key, Value>* previous;
 			Hash_store_list_node<Key, Value>* next;
 
 		public:
-			Hash_store_list_node<Key, Value>(void);
-			~Hash_store_list_node<Key, Value>(void);
+			Hash_store_list_node(Hash_store<Key, Value>* data);
+			~Hash_store_list_node(void);
 
 			Hash_store<Key, Value>* get_data(void) const;
 			Hash_store_list_node<Key, Value>* get_next(void) const;
-			void set_next(Hash_store_list_node<Key, Value>* node);
 	};
+
+////////////////////////////////////////////////////////////////////////////////
 
 	template<typename Key, typename Value>
 	class Hash_store_list final
 	{
 		private:
 			Hash_store_list_node<Key, Value>* head;
-			Hash_store_list_node<Key, Value>* last;
 			uint32_t size;
 
 		public:
@@ -62,7 +71,6 @@ namespace SILT
 			~Hash_store_list(void);
 
 			Hash_store_list_node<Key, Value>* get_head(void) const;
-			Hash_store_list_node<Key, Value>* get_last(void) const;
 			void prepend(Hash_store_list<Key, Value>* node);
 			void remove(Hash_store_list<Key, Value>* node);
 			uint32_t get_size(void) const;
