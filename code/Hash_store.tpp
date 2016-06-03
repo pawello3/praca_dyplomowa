@@ -8,9 +8,6 @@
 #include <cinttypes>
 
 template<typename Key, typename Value>
-char SILT::Hash_store<Key, Value>::id[25] = "";
-
-template<typename Key, typename Value>
 uint32_t SILT::Hash_store<Key, Value>::first_free_id = 0;
 
 template<typename Key, typename Value>
@@ -28,6 +25,12 @@ SILT::Hash_store<Key, Value>::Hash_store(SILT::Log_store<Key, Value>* log_store)
 template<typename Key, typename Value>
 SILT::Hash_store<Key, Value>::~Hash_store(void)
 {
+	fclose(hash_store_file);
+	if(std::remove(id) != 0)
+	{
+		fprintf(stderr, "remove error\n");
+		exit(1);
+	}
 }
 
 template<typename Key, typename Value>
@@ -92,8 +95,7 @@ SILT::Hash_store_list<Key, Value>::~Hash_store_list(void)
 
 template<typename Key, typename Value>
 SILT::Hash_store_list_node<Key, Value>* SILT::Hash_store_list<Key, Value>
-::get_head(void)
-const
+::get_head(void) const
 {
 	return head;
 }

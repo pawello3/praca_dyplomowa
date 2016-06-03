@@ -12,6 +12,11 @@
 #include "Hash_store.hpp"
 #include "Sorted_store.hpp"
 
+/*
+	Zakładamy, że typ Key implementuje operator==. W C++17 można to łatwo
+	wyrazić za pomocą konceptów.
+*/
+
 namespace SILT
 {
 	template<typename Key, typename Value>
@@ -26,7 +31,7 @@ namespace SILT
 			Small_Index_Large_Table(void);
 			~Small_Index_Large_Table(void);
 
-			Value& operator[](Key key) const;
+			const Value& operator[](Key key) const;
 			void insert(Key key, Value value);
 			void remove(Key key);
 	};

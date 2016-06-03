@@ -9,11 +9,17 @@
 
 int main()
 {
-	SILT::Small_Index_Large_Table<int, double> silt
-	= SILT::Small_Index_Large_Table<int, double>();
+	//SILT::Small_Index_Large_Table<int, double> silt
+	//= SILT::Small_Index_Large_Table<int, double>();
 	SILT::Log_store<int, double> log_store = SILT::Log_store<int, double>();
-	SILT::Hash_store<int, double> hash_store
-	= SILT::Hash_store<int, double>(&log_store);
+	log_store.insert(5, 7.9);
+	log_store.insert(6452452, 7.9);
+	log_store.insert(7, 7.9);
+	log_store.insert(7432, 7.9);
+	log_store.insert(73673, 7.9);
+	log_store.insert(7252457, 7.9);
+	//SILT::Hash_store<int, double> hash_store
+	//= SILT::Hash_store<int, double>(&log_store);
 	//SILT::Sorted_store<int, double> sorted_store
 	//= SILT::Sorted_store<int, double>(hash_store_list);
 	return 0;

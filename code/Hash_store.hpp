@@ -17,15 +17,15 @@ namespace SILT
 	class Hash_store final
 	{
 		private:
-			static char id[25];
 			static uint32_t first_free_id;
+			char id[32];
 			FILE* const hash_store_file;
 
 		public:
 			Hash_store(Log_store<Key, Value>* log_store);
 			~Hash_store(void);
 
-			Value& operator[](Key key) const;
+			const Value* operator[](Key key) const;
 			void insert(Key key, Value value);
 			void remove(Key key);
 
