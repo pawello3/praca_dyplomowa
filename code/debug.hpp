@@ -40,6 +40,22 @@
 	}\
 	while(0)
 
+	#define PRINT_BYTES_16(x)\
+	do\
+	{\
+		uint16_t y = htons(x);\
+		for(uint8_t i = 0; i < 16; i++)\
+		{\
+			if(y & 0x8000)\
+				printf("1");\
+			else\
+				printf("0");\
+			y <<= 1;\
+		}\
+		printf("\n");\
+	}\
+	while(0)
+
 	#define PRINT_BYTES_32(x)\
 	do\
 	{\
@@ -53,6 +69,27 @@
 			y <<= 1;\
 		}\
 		printf("\n");\
+	}\
+	while(0)
+
+	#define PRINT_UINT_8(x)\
+	do\
+	{\
+		printf("%" PRIu8 "\n", x);\
+	}\
+	while(0)
+
+	#define PRINT_UINT_16(x)\
+	do\
+	{\
+		printf("%" PRIu16 "\n", x);\
+	}\
+	while(0)
+
+	#define PRINT_UINT_32(x)\
+	do\
+	{\
+		printf("%" PRIu32 "\n", x);\
 	}\
 	while(0)
 #else

@@ -25,7 +25,7 @@ namespace SILT
 			Hash_store(Log_store<Key, Value>* log_store);
 			~Hash_store(void);
 
-			const Value* operator[](Key key) const;
+			const Value& operator[](Key key) const;
 			void insert(Key key, Value value);
 			void remove(Key key);
 

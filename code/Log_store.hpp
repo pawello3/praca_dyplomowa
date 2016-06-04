@@ -46,7 +46,7 @@ namespace SILT
 			Log_store(void);
 			~Log_store(void);
 
-			const Value* operator[](Key key) const;
+			const Value& operator[](Key key) const throw(int);
 			bool insert(Key key, Value value); /* zwraca false, gdy nie ma już
 			miejsca na wstawienie nowego elementu; wówczas zamiast ponownego
 			haszowania tablicy, tworzymy nowy log store; nie robi nic, gdy

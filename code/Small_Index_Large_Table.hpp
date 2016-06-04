@@ -13,8 +13,9 @@
 #include "Sorted_store.hpp"
 
 /*
-	Zakładamy, że typ Key implementuje operator==. W C++17 można to łatwo
-	wyrazić za pomocą konceptów.
+	Zakładamy, że typ Key implementuje operator==, a Value implementuje
+	operator= i posiada domyślny konstruktor bezargumentowy. W C++17 można to
+	łatwo wyrazić za pomocą konceptów.
 */
 
 namespace SILT

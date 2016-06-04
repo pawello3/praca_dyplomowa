@@ -51,8 +51,72 @@ SILT::Log_store<Key, Value>::~Log_store(void)
 }
 
 template<typename Key, typename Value>
-const Value* SILT::Log_store<Key, Value>::operator[](Key key) const
+const Value& SILT::Log_store<Key, Value>::operator[](Key key) const throw(int)
 {
+	SILT_key sha_key;
+	SHA_1(key, sizeof(key), &sha_key);
+	uint16_t h1 = ntohs(htonl(sha_key.h4) & 0x0000FFFE);
+	uint16_t h2 = ntohs((htonl(sha_key.h4) & 0xFFFE0000) >> 16);
+
+	uint8_t number = 0;
+	while(number < 8)
+	{
+		if(number % 2 == 0) // kubełek h1
+		{
+			if(hash_table[htons(h1) >> 1][number >> 1].tag == (h2 | 0x0001))
+			{
+				fseek(log_store_file,
+				hash_table[htons(h1) >> 1][number >> 1].offset, SEEK_SET);
+				Key found_key;
+				if(fread((void*) &found_key, sizeof(Key), 1, log_store_file)
+				!= 1)
+				{
+					fprintf(stderr, "fread error\n");
+					exit(1);
+				}
+				if(found_key == key)
+				{
+					Value* returned_value = new Value();
+					if(fread((void*) returned_value, sizeof(Value), 1,
+					log_store_file) != 1)
+					{
+						fprintf(stderr, "fread error\n");
+						exit(1);
+					}
+					DEBUG();
+					return *returned_value;
+				}
+			}
+		}
+		else // kubełek h2
+		{
+			if(hash_table[htons(h2) >> 1][number >> 1].tag == (h1 | 0x0001))
+			{
+				fseek(log_store_file,
+				hash_table[htons(h2) >> 1][number >> 1].offset, SEEK_SET);
+				Key found_key;
+				if(fread((void*) &found_key, sizeof(Key), 1, log_store_file)
+				!= 1)
+				{
+					fprintf(stderr, "fread error\n");
+					exit(1);
+				}
+				if(found_key == key)
+				{
+					Value* returned_value = new Value();
+					if(fread((void*) &returned_value, sizeof(Value), 1,
+					log_store_file) != 1)
+					{
+						fprintf(stderr, "fread error\n");
+						exit(1);
+					}
+					return *returned_value;
+				}
+			}
+		}
+		number++;
+	}
+	throw(-1);
 }
 
 template<typename Key, typename Value>
@@ -64,11 +128,17 @@ kukułcze dla częściowych kluczy */
 	uint16_t h1 = ntohs(htonl(sha_key.h4) & 0x0000FFFE);
 	uint16_t h2 = ntohs((htonl(sha_key.h4) & 0xFFFE0000) >> 16);
 
+	DEBUG(PRINT_BYTES_32(sha_key.h4));
+	DEBUG(PRINT_BYTES_16(ntohs(htons(h2) >> 1)));
+	DEBUG(PRINT_BYTES_16(ntohs(htons(h1) >> 1)));
+	DEBUG(PRINT_UINT_16(htons(h2) >> 1));
+	DEBUG(PRINT_UINT_16(htons(h1) >> 1));
+
 	fseek(log_store_file, file_size, SEEK_SET);
 	uint32_t log_file_offset = file_size;
 	file_size += sizeof(Key) + sizeof(Value);
-	fwrite(&key, sizeof(Key), 1, log_store_file);
-	fwrite(&value, sizeof(Value), 1, log_store_file);
+	fwrite((void*) &key, sizeof(Key), 1, log_store_file);
+	fwrite((void*) &value, sizeof(Value), 1, log_store_file);
 
 	srand(time(nullptr));
 	uint8_t number;
@@ -82,21 +152,23 @@ kukułcze dla częściowych kluczy */
 		if(insert_into_buckets(h1, h2, log_file_offset) == false)
 		{
 			number = rand() % 8;
-			if(number % 2 == 0)
+			if(number % 2 == 0) // kubełek h1
 			{
 				tmp_h2 = hash_table[h1][number >> 1].tag;
 				tmp_log_file_offset = hash_table[h1][number >> 1].offset;
-				hash_table[h1 >> 1][number >> 1].tag = h2;
-				hash_table[h1 >> 1][number >> 1].offset = log_file_offset;
+				hash_table[htons(h1) >> 1][number >> 1].tag = h2;
+				hash_table[htons(h1) >> 1][number >> 1].offset
+				= log_file_offset;
 				h2 = tmp_h2;
 				log_file_offset = tmp_log_file_offset;
 			}
-			else
+			else // kubełek h2
 			{
 				tmp_h1 = hash_table[h2][number >> 1].tag;
 				tmp_log_file_offset = hash_table[h2][number >> 1].offset;
-				hash_table[h2 >> 1][number >> 1].tag = h1;
-				hash_table[h2 >> 1][number >> 1].offset = log_file_offset;
+				hash_table[htons(h2) >> 1][number >> 1].tag = h1;
+				hash_table[htons(h2) >> 1][number >> 1].offset
+				= log_file_offset;
 				h1 = tmp_h1;
 				log_file_offset = tmp_log_file_offset;
 			}
@@ -117,21 +189,27 @@ uint32_t log_file_offset)
 	uint8_t number = 0;
 	while(number < 8)
 	{
-		if(number % 2 == 0) // h1
+		if(number % 2 == 0) // kubełek h1
 		{
-			if((hash_table[h1 >> 1][number >> 1].tag & 0x0001) == 0)
+			if((hash_table[htons(h1) >> 1][number >> 1].tag & 0x0001)
+			== 0)
 			{
-				hash_table[h1 >> 1][number >> 1].tag = h2 | 0x0001;
-				hash_table[h1 >> 1][number >> 1].offset = log_file_offset;
+				hash_table[htons(h1) >> 1][number >> 1].tag
+				= h2 | 0x0001;
+				hash_table[htons(h1) >> 1][number >> 1].offset
+				= log_file_offset;
 				return true;
 			}
 		}
-		else // h2
+		else // kubełek h2
 		{
-			if((hash_table[h2 >> 1][number >> 1].tag & 0x0001) == 0)
+			if((hash_table[htons(h2) >> 1][number >> 1].tag & 0x0001)
+			== 0)
 			{
-				hash_table[h2 >> 1][number >> 1].tag = h1 | 0x0001;
-				hash_table[h2 >> 1][number >> 1].offset = log_file_offset;
+				hash_table[htons(h2) >> 1][number >> 1].tag
+				= h1 | 0x0001;
+				hash_table[htons(h2) >> 1][number >> 1].offset
+				= log_file_offset;
 				return true;
 			}
 		}
