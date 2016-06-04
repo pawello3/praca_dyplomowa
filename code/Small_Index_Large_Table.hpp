@@ -32,7 +32,7 @@ namespace SILT
 			Small_Index_Large_Table(void);
 			~Small_Index_Large_Table(void);
 
-			const Value& operator[](Key key) const;
+			Value* operator[](Key key) const;
 			void insert(Key key, Value value);
 			void remove(Key key);
 	};

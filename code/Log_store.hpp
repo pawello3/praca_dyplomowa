@@ -25,6 +25,7 @@ namespace SILT
 	constexpr uint32_t hash_table_size = 1 << 15; // znacznik 15-bitowy
 	constexpr uint8_t bucket_size = 4;
 	constexpr uint8_t maximum_number_of_displacements = 128;
+	constexpr uint16_t valid_bit = 0x0001;
 
 	struct Hash_table_entry
 	{
@@ -46,7 +47,8 @@ namespace SILT
 			Log_store(void);
 			~Log_store(void);
 
-			const Value& operator[](Key key) const throw(int);
+			Value* operator[](Key key) const; /* zwraca nullptr, gdy nie
+			znaleziono klucza */
 			bool insert(Key key, Value value); /* zwraca false, gdy nie ma już
 			miejsca na wstawienie nowego elementu; wówczas zamiast ponownego
 			haszowania tablicy, tworzymy nowy log store; nie robi nic, gdy

@@ -51,7 +51,7 @@ SILT::Log_store<Key, Value>::~Log_store(void)
 }
 
 template<typename Key, typename Value>
-const Value& SILT::Log_store<Key, Value>::operator[](Key key) const throw(int)
+Value* SILT::Log_store<Key, Value>::operator[](Key key) const
 {
 	SILT_key sha_key;
 	SHA_1(key, sizeof(key), &sha_key);
@@ -59,14 +59,17 @@ const Value& SILT::Log_store<Key, Value>::operator[](Key key) const throw(int)
 	uint16_t h2 = ntohs((htonl(sha_key.h4) & 0xFFFE0000) >> 16);
 
 	uint8_t number = 0;
-	while(number < 8)
+	while(number < 2 * bucket_size)
 	{
-		if(number % 2 == 0) // kubełek h1
+		// odwrotna kolejność przeglądania, najpierw h2 i od dołu
+		if(number % 2 == 1) // kubełek h1
 		{
-			if(hash_table[htons(h1) >> 1][number >> 1].tag == (h2 | 0x0001))
+			if(hash_table[htons(h1) >> 1][bucket_size - 1 - (number >> 1)].tag
+			== (h2 | valid_bit))
 			{
 				fseek(log_store_file,
-				hash_table[htons(h1) >> 1][number >> 1].offset, SEEK_SET);
+				hash_table[htons(h1) >> 1][bucket_size - 1 - (number >> 1)]
+				.offset, SEEK_SET);
 				Key found_key;
 				if(fread((void*) &found_key, sizeof(Key), 1, log_store_file)
 				!= 1)
@@ -83,17 +86,18 @@ const Value& SILT::Log_store<Key, Value>::operator[](Key key) const throw(int)
 						fprintf(stderr, "fread error\n");
 						exit(1);
 					}
-					DEBUG();
-					return *returned_value;
+					return returned_value;
 				}
 			}
 		}
 		else // kubełek h2
 		{
-			if(hash_table[htons(h2) >> 1][number >> 1].tag == (h1 | 0x0001))
+			if(hash_table[htons(h2) >> 1][bucket_size - 1 - (number >> 1)].tag
+			== (h1 | valid_bit))
 			{
 				fseek(log_store_file,
-				hash_table[htons(h2) >> 1][number >> 1].offset, SEEK_SET);
+				hash_table[htons(h2) >> 1][bucket_size - 1 - (number >> 1)]
+				.offset, SEEK_SET);
 				Key found_key;
 				if(fread((void*) &found_key, sizeof(Key), 1, log_store_file)
 				!= 1)
@@ -104,19 +108,19 @@ const Value& SILT::Log_store<Key, Value>::operator[](Key key) const throw(int)
 				if(found_key == key)
 				{
 					Value* returned_value = new Value();
-					if(fread((void*) &returned_value, sizeof(Value), 1,
+					if(fread((void*) returned_value, sizeof(Value), 1,
 					log_store_file) != 1)
 					{
 						fprintf(stderr, "fread error\n");
 						exit(1);
 					}
-					return *returned_value;
+					return returned_value;
 				}
 			}
 		}
 		number++;
 	}
-	throw(-1);
+	return nullptr;
 }
 
 template<typename Key, typename Value>
@@ -151,7 +155,7 @@ kukułcze dla częściowych kluczy */
 	{
 		if(insert_into_buckets(h1, h2, log_file_offset) == false)
 		{
-			number = rand() % 8;
+			number = rand() % (2 * bucket_size);
 			if(number % 2 == 0) // kubełek h1
 			{
 				tmp_h2 = hash_table[h1][number >> 1].tag;
@@ -187,15 +191,15 @@ bool SILT::Log_store<Key, Value>::insert_into_buckets(uint16_t h1, uint32_t h2,
 uint32_t log_file_offset)
 {
 	uint8_t number = 0;
-	while(number < 8)
+	while(number < 2 * bucket_size)
 	{
 		if(number % 2 == 0) // kubełek h1
 		{
-			if((hash_table[htons(h1) >> 1][number >> 1].tag & 0x0001)
+			if((hash_table[htons(h1) >> 1][number >> 1].tag & valid_bit)
 			== 0)
 			{
 				hash_table[htons(h1) >> 1][number >> 1].tag
-				= h2 | 0x0001;
+				= h2 | valid_bit;
 				hash_table[htons(h1) >> 1][number >> 1].offset
 				= log_file_offset;
 				return true;
@@ -203,11 +207,11 @@ uint32_t log_file_offset)
 		}
 		else // kubełek h2
 		{
-			if((hash_table[htons(h2) >> 1][number >> 1].tag & 0x0001)
+			if((hash_table[htons(h2) >> 1][number >> 1].tag & valid_bit)
 			== 0)
 			{
 				hash_table[htons(h2) >> 1][number >> 1].tag
-				= h1 | 0x0001;
+				= h1 | valid_bit;
 				hash_table[htons(h2) >> 1][number >> 1].offset
 				= log_file_offset;
 				return true;
@@ -221,6 +225,7 @@ uint32_t log_file_offset)
 template<typename Key, typename Value>
 void SILT::Log_store<Key, Value>::remove(Key key)
 {
+
 }
 
 template<typename Key, typename Value>
