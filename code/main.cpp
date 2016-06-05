@@ -17,7 +17,7 @@ int main()
 	log_store.insert(7432, 7.94);
 	log_store.insert(73673, 7.95);
 	log_store.insert(7252457, 7.96);
-	double* d = log_store[5];
+	double* d = log_store[7252457];
 	if(d != nullptr)
 		printf("%lf", *d);
 	else
