@@ -215,7 +215,8 @@ const
 				if((hash_table[h1 >> 2][bucket_size - 1 - (number >> 1)].tag
 				& operation_bit) == 0)
 				{
-					return nullptr; // wpis usunięty
+					*reason = true;
+					return nullptr; // wpis usuwający
 				}
 				fseek(log_store_file,
 				hash_table[h1 >> 2][bucket_size - 1 - (number >> 1)]
@@ -249,7 +250,7 @@ const
 				& operation_bit) == 0)
 				{
 					*reason = true;
-					return nullptr; // wpis usunięty
+					return nullptr; // wpis usuwający
 				}
 				fseek(log_store_file,
 				hash_table[h2 >> 2][bucket_size - 1 - (number >> 1)]

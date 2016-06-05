@@ -78,7 +78,86 @@ template<typename Key, typename Value>
 Value* SILT::Hash_store<Key, Value>::get_value(const Key& key, bool* reason)
 const
 {
-	assert(false); // TODO
+	*reason = false;
+	SILT_key sha_key;
+	Log_store<Key, Value>::SHA_1(key, sizeof(key), &sha_key);
+	uint16_t h1 = sha_key.h4 & h1_mask;
+	uint16_t h2 = (sha_key.h4 & h2_mask) >> 16;
+
+	uint8_t number = 0;
+	while(number < (bucket_size << 1))
+	{
+		// odwrotna kolejność przeglądania, najpierw kubełek h2 i od dołu
+		if(number % 2 == 1) // kubełek h1
+		{
+			if((hash_table[h1 >> 2][bucket_size - 1 - (number >> 1)]
+			& ~operation_bit) == (h2 | valid_bit))
+			{
+				if((hash_table[h1 >> 2][bucket_size - 1 - (number >> 1)]
+				& operation_bit) == 0)
+				{
+					*reason = true;
+					return nullptr; // wpis usuwający
+				}
+				fseek(hash_store_file, ((h1 >> 2) * bucket_size
+				+ (bucket_size - 1 - (number >> 1))) * log_entry_size,
+				SEEK_SET);
+				Key found_key;
+				if(fread((void*) &found_key, sizeof(Key), 1, hash_store_file)
+				!= 1)
+				{
+					fprintf(stderr, "fread error\n");
+					exit(1);
+				}
+				if(found_key == key)
+				{
+					Value* returned_value = new Value();
+					if(fread((void*) returned_value, sizeof(Value), 1,
+					hash_store_file) != 1)
+					{
+						fprintf(stderr, "fread error\n");
+						exit(1);
+					}
+					return returned_value;
+				}
+			}
+		}
+		else // kubełek h2
+		{
+			if((hash_table[h2 >> 2][bucket_size - 1 - (number >> 1)]
+			& ~operation_bit) == (h1 | valid_bit))
+			{
+				if((hash_table[h2 >> 2][bucket_size - 1 - (number >> 1)]
+				& operation_bit) == 0)
+				{
+					*reason = true;
+					return nullptr; // wpis usuwający
+				}
+				fseek(hash_store_file, ((h2 >> 2) * bucket_size
+				+ (bucket_size - 1 - (number >> 1))) * log_entry_size,
+				SEEK_SET);
+				Key found_key;
+				if(fread((void*) &found_key, sizeof(Key), 1, hash_store_file)
+				!= 1)
+				{
+					fprintf(stderr, "fread error\n");
+					exit(1);
+				}
+				if(found_key == key)
+				{
+					Value* returned_value = new Value();
+					if(fread((void*) returned_value, sizeof(Value), 1,
+					hash_store_file) != 1)
+					{
+						fprintf(stderr, "fread error\n");
+						exit(1);
+					}
+					return returned_value;
+				}
+			}
+		}
+		number++;
+	}
 	return nullptr;
 }
 

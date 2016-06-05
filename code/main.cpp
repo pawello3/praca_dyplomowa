@@ -26,6 +26,11 @@ int main()
 		printf("Key not found\n");
 	SILT::Hash_store<int, double> hash_store
 	= SILT::Hash_store<int, double>(&log_store);
+	d = hash_store.get_value(7432, &reason);
+	if(d != nullptr)
+		printf("%lf", *d);
+	else
+		printf("Key not found\n");
 	//SILT::Sorted_store<int, double> sorted_store
 	//= SILT::Sorted_store<int, double>(hash_store_list);
 	//SILT::Small_Index_Large_Table<int, double> silt
