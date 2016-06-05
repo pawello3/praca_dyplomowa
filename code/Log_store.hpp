@@ -39,7 +39,7 @@ namespace SILT
 			(1) D - bit rodzaju operacji (0 - usuwanie, 1 - wstawianie)
 			(1) V - bit zajętości miejsca w kubełku (0 - wolne, 1 - zajęte)
 		*/
-		uint32_t offset;
+		uint32_t offset; // liczba par klucz-wartość poprzedzających dany wpis
 	};
 
 	struct Undo_entry
@@ -49,13 +49,19 @@ namespace SILT
 	};
 
 	template<typename Key, typename Value>
+	class Hash_store;
+
+	template<typename Key, typename Value>
 	class Log_store final
 	{
+		friend class Hash_store<Key, Value>;
+
 		private:
 			char id[32];
+			Hash_table_entry** hash_table;
+			const uint32_t log_entry_size;
 			FILE* const log_store_file;
 			uint32_t file_size;
-			Hash_table_entry** hash_table;
 
 		public:
 			Log_store(void);
@@ -66,8 +72,9 @@ namespace SILT
 			gdy w tablicy znajduje się wartość dla danego klucza */
 			bool remove(const Key& key); /* zwraca false, gdy nie ma już miejsca
 			na dopisanie wpisu o usunięciu klucza */
-			Value* operator[](const Key& key) const; /* zwraca nullptr, gdy nie
-			znaleziono klucza */
+			Value* get_value(const Key& key, bool* reason) const; /* zwraca
+			nullptr, gdy nie znaleziono klucza i w zmiennej reason zapisuje
+			przyczynę: 0 - brak informacji, 1 - usunięty */
 
 		private:
 			static void SHA_1(Key key, uint32_t key_size, SILT_key*

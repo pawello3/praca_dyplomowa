@@ -17,7 +17,8 @@ ntohl((((htonl(a) << (b))) | (htonl(a) >> (32-(b)))))
 
 template<typename Key, typename Value>
 SILT::Log_store<Key, Value>::Log_store(void)
-	:log_store_file(fopen("Log_store.dat", "wb+"))
+	:log_entry_size(sizeof(Key) + sizeof(Value))
+	,log_store_file(fopen("Log_store.dat", "wb+"))
 	,file_size(0)
 {
 	if(log_store_file == nullptr)
@@ -107,10 +108,10 @@ bool operation)
 		}
 		else
 		{
-			fseek(log_store_file, file_size, SEEK_SET);
+			fseek(log_store_file, file_size * log_entry_size, SEEK_SET);
 			fwrite((void*) &key, sizeof(Key), 1, log_store_file);
 			fwrite((void*) &value, sizeof(Value), 1, log_store_file);
-			file_size += sizeof(Key) + sizeof(Value);
+			file_size++;
 			return true;
 		}
 	}
@@ -144,7 +145,7 @@ bool operation)
 		log_file_offset = tmp_log_file_offset;
 		number = undo[i - 1].number;
 	}
-	assert(h1 == sha_key.h4 & h1_mask);
+	assert(h1 == (sha_key.h4 & h1_mask));
 	assert(h2 == ((sha_key.h4 & h2_mask) >> 16));
 	assert(log_file_offset == file_size);
 	// jeśli asercje nawalą, to znaczy, że źle odtwarzano
@@ -193,8 +194,10 @@ bool SILT::Log_store<Key, Value>::remove(const Key& key)
 }
 
 template<typename Key, typename Value>
-Value* SILT::Log_store<Key, Value>::operator[](const Key& key) const
+Value* SILT::Log_store<Key, Value>::get_value(const Key& key, bool* reason)
+const
 {
+	*reason = false;
 	SILT_key sha_key;
 	SHA_1(key, sizeof(key), &sha_key);
 	uint16_t h1 = sha_key.h4 & h1_mask;
@@ -216,7 +219,7 @@ Value* SILT::Log_store<Key, Value>::operator[](const Key& key) const
 				}
 				fseek(log_store_file,
 				hash_table[h1 >> 2][bucket_size - 1 - (number >> 1)]
-				.offset, SEEK_SET);
+				.offset * log_entry_size, SEEK_SET);
 				Key found_key;
 				if(fread((void*) &found_key, sizeof(Key), 1, log_store_file)
 				!= 1)
@@ -245,11 +248,12 @@ Value* SILT::Log_store<Key, Value>::operator[](const Key& key) const
 				if((hash_table[h2 >> 2][bucket_size - 1 - (number >> 1)].tag
 				& operation_bit) == 0)
 				{
+					*reason = true;
 					return nullptr; // wpis usunięty
 				}
 				fseek(log_store_file,
 				hash_table[h2 >> 2][bucket_size - 1 - (number >> 1)]
-				.offset, SEEK_SET);
+				.offset * log_entry_size, SEEK_SET);
 				Key found_key;
 				if(fread((void*) &found_key, sizeof(Key), 1, log_store_file)
 				!= 1)

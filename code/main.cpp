@@ -18,13 +18,14 @@ int main()
 	log_store.insert(7432, 7.94);
 	log_store.insert(73673, 7.95);
 	log_store.insert(7252457, 7.96);
-	double* d = log_store[5];
+	bool reason = false;
+	double* d = log_store.get_value(5, &reason);
 	if(d != nullptr)
 		printf("%lf", *d);
 	else
 		printf("Key not found\n");
-	//SILT::Hash_store<int, double> hash_store
-	//= SILT::Hash_store<int, double>(&log_store);
+	SILT::Hash_store<int, double> hash_store
+	= SILT::Hash_store<int, double>(&log_store);
 	//SILT::Sorted_store<int, double> sorted_store
 	//= SILT::Sorted_store<int, double>(hash_store_list);
 	//SILT::Small_Index_Large_Table<int, double> silt

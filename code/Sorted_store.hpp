@@ -22,9 +22,7 @@ namespace SILT
 			Sorted_store(Hash_store_list<Key, Value>* hash_store_list);
 			~Sorted_store(void);
 
-			void insert(const Key& key, const Value& value);
-			void remove(const Key& key);
-			Value* operator[](const Key& key) const;
+			Value* get_value(const Key& key) const;
 	};
 }
 

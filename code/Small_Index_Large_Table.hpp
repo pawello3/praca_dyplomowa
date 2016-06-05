@@ -34,7 +34,8 @@ namespace SILT
 
 			void insert(const Key& key, const Value& value);
 			void remove(const Key& key);
-			Value* operator[](const Key& key) const;
+			Value* operator[](const Key& key) const; /* zwraca nullptr, gdy nie
+			ma klucza w tablicy SILT */
 	};
 }
 

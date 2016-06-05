@@ -19,15 +19,15 @@ namespace SILT
 		private:
 			static uint32_t first_free_id;
 			char id[32];
+			uint16_t** hash_table;
+			const uint32_t log_entry_size;
 			FILE* const hash_store_file;
 
 		public:
 			Hash_store(Log_store<Key, Value>* log_store);
 			~Hash_store(void);
 
-			void insert(const Key& key, const Value& value);
-			void remove(const Key& key);
-			Value* operator[](const Key& key) const;
+			Value* get_value(const Key& key, bool* reason) const;
 
 		private:
 			char* next_id(void);
