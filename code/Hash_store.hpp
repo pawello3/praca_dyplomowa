@@ -25,13 +25,12 @@ namespace SILT
 			Hash_store(Log_store<Key, Value>* log_store);
 			~Hash_store(void);
 
-			Value* operator[](Key key) const;
-			void insert(Key key, Value value);
-			void remove(Key key);
+			void insert(const Key& key, const Value& value);
+			void remove(const Key& key);
+			Value* operator[](const Key& key) const;
 
 		private:
 			char* next_id(void);
-			bool look_up(const Key key) const;
 	};
 
 ////////////////////////////////////////////////////////////////////////////////

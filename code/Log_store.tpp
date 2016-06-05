@@ -32,8 +32,6 @@ SILT::Log_store<Key, Value>::Log_store(void)
 		hash_table[i] = new Hash_table_entry[bucket_size];
 		memset(hash_table[i], 0, sizeof(hash_table[0][0]) * bucket_size);
 	}
-	overload.tag = 0;
-	overload.offset = 0;
 }
 
 template<typename Key, typename Value>
@@ -51,7 +49,151 @@ SILT::Log_store<Key, Value>::~Log_store(void)
 }
 
 template<typename Key, typename Value>
-Value* SILT::Log_store<Key, Value>::operator[](Key key) const
+bool SILT::Log_store<Key, Value>::insert(const Key& key, const Value& value)
+/* haszowanie kukułcze dla częściowych kluczy */
+{
+	return insert(key, value, true);
+}
+
+template<typename Key, typename Value>
+bool SILT::Log_store<Key, Value>::insert(const Key& key, const Value& value,
+bool operation)
+{
+	SILT_key sha_key;
+	SHA_1(key, sizeof(key), &sha_key);
+	uint16_t h1 = sha_key.h4 & h1_mask;
+	uint16_t h2 = (sha_key.h4 & h2_mask) >> 16;
+
+	DEBUG(PRINT_BYTES_32(sha_key.h4));
+	DEBUG(PRINT_BYTES_16(h1));
+	DEBUG(PRINT_BYTES_16(h2));
+
+	srand(time(nullptr));
+	uint8_t number;
+	uint32_t log_file_offset = file_size;
+	uint16_t tmp_h1;
+	uint16_t tmp_h2;
+	uint32_t tmp_log_file_offset;
+	Undo_entry undo[maximum_number_of_displacements];
+
+	for(uint8_t number_of_displacements = 0;
+	number_of_displacements < maximum_number_of_displacements;
+	number_of_displacements++)
+	{
+		if(insert_into_buckets(h1, h2, log_file_offset, operation) == false)
+		{
+			number = rand() % (bucket_size << 1);
+			undo[number_of_displacements].number = number;
+			if(number % 2 == 0) // kubełek h1
+			{
+				undo[number_of_displacements].h = h2;
+				tmp_h2 = hash_table[h1 >> 2][number >> 1].tag;
+				tmp_log_file_offset = hash_table[h1 >> 2][number >> 1].offset;
+				hash_table[h1 >> 2][number >> 1].tag = h2;
+				hash_table[h1 >> 2][number >> 1].offset = log_file_offset;
+				h2 = tmp_h2;
+				log_file_offset = tmp_log_file_offset;
+			}
+			else // kubełek h2
+			{
+				undo[number_of_displacements].h = h1;
+				tmp_h1 = hash_table[h2 >> 1][number >> 1].tag;
+				tmp_log_file_offset = hash_table[h2 >> 1][number >> 1].offset;
+				hash_table[h2 >> 1][number >> 1].tag = h1;
+				hash_table[h2 >> 1][number >> 1].offset = log_file_offset;
+				h1 = tmp_h1;
+				log_file_offset = tmp_log_file_offset;
+			}
+		}
+		else
+		{
+			fseek(log_store_file, file_size, SEEK_SET);
+			fwrite((void*) &key, sizeof(Key), 1, log_store_file);
+			fwrite((void*) &value, sizeof(Value), 1, log_store_file);
+			file_size += sizeof(Key) + sizeof(Value);
+			return true;
+		}
+	}
+	DEBUG(fprintf(stderr, "Przepełnienie, cofanie wstawienia"));
+	for(uint8_t i = maximum_number_of_displacements; i > 0; i--)
+	{
+		if(number % 2 == 0) // kubełek h1
+		{
+			tmp_h2 = hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1]
+			.tag;
+			tmp_log_file_offset = hash_table[undo[i - 1].h >> 2]
+			[undo[i - 1].number >> 1].offset;
+			hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1].tag
+			= h2;
+			hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1].offset
+			= log_file_offset;
+			h2 = tmp_h2;
+		}
+		else // kubełek h2
+		{
+			tmp_h1 = hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1]
+			.tag;
+			tmp_log_file_offset = hash_table[undo[i - 1].h >> 2]
+			[undo[i - 1].number >> 1].offset;
+			hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1].tag
+			= h2;
+			hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1].offset
+			= log_file_offset;
+			h1 = tmp_h1;
+		}
+		log_file_offset = tmp_log_file_offset;
+		number = undo[i - 1].number;
+	}
+	assert(h1 == sha_key.h4 & h1_mask);
+	assert(h2 == ((sha_key.h4 & h2_mask) >> 16));
+	assert(log_file_offset == file_size);
+	// jeśli asercje nawalą, to znaczy, że źle odtwarzano
+	return false;
+}
+
+template<typename Key, typename Value>
+bool SILT::Log_store<Key, Value>::insert_into_buckets(uint16_t h1, uint32_t h2,
+uint32_t log_file_offset, bool operation)
+{
+	uint8_t number = 0;
+	while(number < (bucket_size << 1))
+	{
+		if(number % 2 == 0) // kubełek h1
+		{
+			if((hash_table[h1 >> 2][number >> 1].tag & valid_bit) == 0)
+			{
+				hash_table[h1 >> 2][number >> 1].tag
+				= ((operation == true) ? (h2 | operation_bit)
+				: (h2 & ~operation_bit)) | valid_bit;
+				hash_table[h1 >> 2][number >> 1].offset = log_file_offset;
+				return true;
+			}
+		}
+		else // kubełek h2
+		{
+			if((hash_table[h2 >> 2][number >> 1].tag & valid_bit) == 0)
+			{
+				hash_table[h2 >> 2][number >> 1].tag
+				= ((operation == true) ? (h1 | operation_bit)
+				: (h1 & ~operation_bit)) | valid_bit;
+				hash_table[h2 >> 2][number >> 1].offset = log_file_offset;
+				return true;
+			}
+		}
+		number++;
+	}
+	return false;
+}
+
+template<typename Key, typename Value>
+bool SILT::Log_store<Key, Value>::remove(const Key& key)
+{
+	Value* value = new Value();
+	return insert(key, *value, false);
+}
+
+template<typename Key, typename Value>
+Value* SILT::Log_store<Key, Value>::operator[](const Key& key) const
 {
 	SILT_key sha_key;
 	SHA_1(key, sizeof(key), &sha_key);
@@ -59,7 +201,7 @@ Value* SILT::Log_store<Key, Value>::operator[](Key key) const
 	uint16_t h2 = (sha_key.h4 & h2_mask) >> 16;
 
 	uint8_t number = 0;
-	while(number < 2 * bucket_size)
+	while(number < (bucket_size << 1))
 	{
 		// odwrotna kolejność przeglądania, najpierw kubełek h2 i od dołu
 		if(number % 2 == 1) // kubełek h1
@@ -131,106 +273,6 @@ Value* SILT::Log_store<Key, Value>::operator[](Key key) const
 		number++;
 	}
 	return nullptr;
-}
-
-template<typename Key, typename Value>
-bool SILT::Log_store<Key, Value>::insert(Key key, Value value) /* haszowanie
-kukułcze dla częściowych kluczy */
-{
-	SILT_key sha_key;
-	SHA_1(key, sizeof(key), &sha_key);
-	uint16_t h1 = sha_key.h4 & h1_mask;
-	uint16_t h2 = (sha_key.h4 & h2_mask) >> 16;
-
-	DEBUG(PRINT_BYTES_32(sha_key.h4));
-	DEBUG(PRINT_BYTES_16(h1));
-	DEBUG(PRINT_BYTES_16(h2));
-
-	fseek(log_store_file, file_size, SEEK_SET);
-	fwrite((void*) &key, sizeof(Key), 1, log_store_file);
-	fwrite((void*) &value, sizeof(Value), 1, log_store_file);
-	uint32_t log_file_offset = file_size;
-	file_size += sizeof(Key) + sizeof(Value);
-
-	srand(time(nullptr));
-	uint8_t number;
-	uint16_t tmp_h1;
-	uint16_t tmp_h2;
-	uint32_t tmp_log_file_offset;
-	for(uint8_t number_of_displacements = 0;
-	number_of_displacements < maximum_number_of_displacements;
-	number_of_displacements++)
-	{
-		if(insert_into_buckets(h1, h2, log_file_offset, true) == false)
-		{
-			number = rand() % (bucket_size << 1);
-			if(number % 2 == 0) // kubełek h1
-			{
-				tmp_h2 = hash_table[h1 >> 2][number >> 1].tag;
-				tmp_log_file_offset = hash_table[h1 >> 2][number >> 1].offset;
-				hash_table[h1 >> 2][number >> 1].tag = h2;
-				hash_table[h1 >> 2][number >> 1].offset = log_file_offset;
-				h2 = tmp_h2;
-				log_file_offset = tmp_log_file_offset;
-			}
-			else // kubełek h2
-			{
-				tmp_h1 = hash_table[h2 >> 1][number >> 1].tag;
-				tmp_log_file_offset = hash_table[h2 >> 1][number >> 1].offset;
-				hash_table[h2 >> 1][number >> 1].tag = h1;
-				hash_table[h2 >> 1][number >> 1].offset = log_file_offset;
-				h1 = tmp_h1;
-				log_file_offset = tmp_log_file_offset;
-			}
-		}
-		else
-		{
-			return true;
-		}
-	}
-	assert(false); // TODO: przepełnienie
-	overload.offset = log_file_offset;
-	return false;
-}
-
-template<typename Key, typename Value>
-bool SILT::Log_store<Key, Value>::insert_into_buckets(uint16_t h1, uint32_t h2,
-uint32_t log_file_offset, bool operation)
-{
-	uint8_t number = 0;
-	while(number < (bucket_size << 1))
-	{
-		if(number % 2 == 0) // kubełek h1
-		{
-			if((hash_table[h1 >> 2][number >> 1].tag & valid_bit) == 0)
-			{
-				hash_table[h1 >> 2][number >> 1].tag
-				= ((operation == true) ? (h2 | operation_bit)
-				: (h2 & ~operation_bit)) | valid_bit;
-				hash_table[h1 >> 2][number >> 1].offset = log_file_offset;
-				return true;
-			}
-		}
-		else // kubełek h2
-		{
-			if((hash_table[h2 >> 2][number >> 1].tag & valid_bit) == 0)
-			{
-				hash_table[h2 >> 2][number >> 1].tag
-				= ((operation == true) ? (h1 | operation_bit)
-				: (h1 & ~operation_bit)) | valid_bit;
-				hash_table[h2 >> 2][number >> 1].offset = log_file_offset;
-				return true;
-			}
-		}
-		number++;
-	}
-	return false;
-}
-
-template<typename Key, typename Value>
-void SILT::Log_store<Key, Value>::remove(Key key)
-{
-
 }
 
 template<typename Key, typename Value>

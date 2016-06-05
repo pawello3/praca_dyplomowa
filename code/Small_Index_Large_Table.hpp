@@ -13,9 +13,9 @@
 #include "Sorted_store.hpp"
 
 /*
-	Zakładamy, że typ Key implementuje operator==, a Value implementuje
-	operator= i posiada domyślny konstruktor bezargumentowy. W C++17 można to
-	łatwo wyrazić za pomocą konceptów.
+	Zakładamy, że typ Key implementuje operator==, a Value posiada domyślny
+	konstruktor bezargumentowy. W C++17 można takie wymagania łatwo wyrazić
+	za pomocą konceptów.
 */
 
 namespace SILT
@@ -32,9 +32,9 @@ namespace SILT
 			Small_Index_Large_Table(void);
 			~Small_Index_Large_Table(void);
 
-			Value* operator[](Key key) const;
-			void insert(Key key, Value value);
-			void remove(Key key);
+			void insert(const Key& key, const Value& value);
+			void remove(const Key& key);
+			Value* operator[](const Key& key) const;
 	};
 }
 
