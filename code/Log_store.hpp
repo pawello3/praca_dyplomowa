@@ -44,8 +44,9 @@ namespace SILT
 
 	struct Undo_entry
 	{
-		uint8_t number;
 		uint16_t h;
+		uint8_t number;
+		bool which;
 	};
 
 	template<typename Key, typename Value>
@@ -81,6 +82,8 @@ namespace SILT
 			returned_key);
 			bool insert(const Key& key, const Value& value, bool operation);
 			bool insert_into_buckets(uint16_t h1, uint32_t h2,
+			uint32_t log_file_offset, bool operation);
+			bool insert_into_bucket(uint16_t h1, uint32_t h2,
 			uint32_t log_file_offset, bool operation);
 	};
 }

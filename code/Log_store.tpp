@@ -65,48 +65,84 @@ bool operation)
 	uint16_t h1 = sha_key.h4 & h1_mask;
 	uint16_t h2 = (sha_key.h4 & h2_mask) >> 16;
 
-	DEBUG(PRINT_BYTES_32(sha_key.h4));
+	/*DEBUG(PRINT_BYTES_32(sha_key.h4));
 	DEBUG(PRINT_BYTES_16(h1));
-	DEBUG(PRINT_BYTES_16(h2));
+	DEBUG(PRINT_BYTES_16(h2));*/
 
-	srand(time(nullptr));
-	uint8_t number;
 	uint32_t log_file_offset = file_size;
+	if(insert_into_buckets(h1, h2, log_file_offset, operation) == true)
+	{
+		fseek(log_store_file, file_size * log_entry_size, SEEK_SET);
+		fwrite((void*) &key, sizeof(Key), 1, log_store_file);
+		fwrite((void*) &value, sizeof(Value), 1, log_store_file);
+		file_size++;
+		return true;
+	}
+	/*
+		Od teraz
+		Element X, który nie ma jeszcze swojej pozycji (wyrzucony), znajduje się
+		w schowku reprezentowanym jako:
+			h1 - pierwszy kubełek (tam go odsyłamy) dla elementu wyrzuconego
+			h2 - kubełek alternatywny (znajdzie się w znaczniku)
+			log_file_offset - przesunięcie związane z tym elementem
+
+		Wiemy, że nie mieści się on do żadnego miejsca w obu kubełkach. Losujemy
+		jedno z tych miejsc i go tam wstawiamy. A wyrzucony w ten sposób
+		element zapamiętujemy w schowku.
+
+		Pomocniczne zmienne dla właśnie wyrzucanego elementu Y:
+			tmp_h1 - pierwszy kubełek (tam go odsyłamy) dla elementu wyrzuconego
+			tmp_h2 - kubełek alternatywny (znajdzie się w znaczniku)
+			tmp_log_file_offset - przesunięcie związane z tym elementem
+
+		Po wstawieniu elementu X ze schowka na jego miejsce, umieszczamy w nim
+		element Y.
+	*/
+
+	h1 = ((operation == true) ? (h1 | operation_bit) : (h1 & ~operation_bit))
+	| valid_bit;
+	h2 = ((operation == true) ? (h2 | operation_bit) : (h2 & ~operation_bit))
+	| valid_bit;
+	srand(time(nullptr));
+	uint8_t number = rand() % (bucket_size << 1);
 	uint16_t tmp_h1;
 	uint16_t tmp_h2;
 	uint32_t tmp_log_file_offset;
 	Undo_entry undo[maximum_number_of_displacements];
-
-	for(uint8_t number_of_displacements = 0;
-	number_of_displacements < maximum_number_of_displacements;
-	number_of_displacements++)
+	for(uint8_t i = 0; i < maximum_number_of_displacements; i++)
 	{
-		if(insert_into_buckets(h1, h2, log_file_offset, operation) == false)
+		if(number % 2 == 0) // kubełek h1
+		/* poprzednio wyrzuciliśmy element z kubełka h2 i chcieliśmy go wrzucić
+		do h1, ale się nie udało, więc wrzucamy na siłę i wyrzucamy inny */
 		{
-			number = rand() % (bucket_size << 1);
-			undo[number_of_displacements].number = number;
-			if(number % 2 == 0) // kubełek h1
-			{
-				undo[number_of_displacements].h = h2;
-				tmp_h2 = hash_table[h1 >> 2][number >> 1].tag;
-				tmp_log_file_offset = hash_table[h1 >> 2][number >> 1].offset;
-				hash_table[h1 >> 2][number >> 1].tag = h2;
-				hash_table[h1 >> 2][number >> 1].offset = log_file_offset;
-				h2 = tmp_h2;
-				log_file_offset = tmp_log_file_offset;
-			}
-			else // kubełek h2
-			{
-				undo[number_of_displacements].h = h1;
-				tmp_h1 = hash_table[h2 >> 1][number >> 1].tag;
-				tmp_log_file_offset = hash_table[h2 >> 1][number >> 1].offset;
-				hash_table[h2 >> 1][number >> 1].tag = h1;
-				hash_table[h2 >> 1][number >> 1].offset = log_file_offset;
-				h1 = tmp_h1;
-				log_file_offset = tmp_log_file_offset;
-			}
+			tmp_h1 = hash_table[h1 >> 2][number >> 1].tag;
+			tmp_h2 = h1;
+			tmp_log_file_offset = hash_table[h1 >> 2][number >> 1].offset;
+			hash_table[h1 >> 2][number >> 1].tag = h2;
+			hash_table[h1 >> 2][number >> 1].offset = log_file_offset;
+			undo[i].h = h1 >> 2;
+			undo[i].number = number >> 1;
+			undo[i].which = false;
+			number = 1;
 		}
-		else
+		else // kubełek h2
+		/* poprzednio wyrzuciliśmy element z kubełka h1 i chcieliśmy go wrzucić
+		do h2, ale się nie udało, więc wrzucamy na siłę i wyrzucamy inny */
+		{
+			tmp_h1 = h2;
+			tmp_h2 = hash_table[h2 >> 2][number >> 1].tag;
+			tmp_log_file_offset = hash_table[h2 >> 2][number >> 1].offset;
+			hash_table[h2 >> 2][number >> 1].tag = h1;
+			hash_table[h2 >> 2][number >> 1].offset = log_file_offset;
+			undo[i].h = h2 >> 2;
+			undo[i].number = number >> 1;
+			undo[i].which = true;
+			number = 0;
+		}
+		h1 = tmp_h1;
+		h2 = tmp_h2;
+		log_file_offset = tmp_log_file_offset;
+		if(insert_into_bucket(h1, h2, log_file_offset, operation) == true)
 		{
 			fseek(log_store_file, file_size * log_entry_size, SEEK_SET);
 			fwrite((void*) &key, sizeof(Key), 1, log_store_file);
@@ -114,39 +150,34 @@ bool operation)
 			file_size++;
 			return true;
 		}
+		number += (rand() % bucket_size) << 1;
 	}
-	DEBUG(fprintf(stderr, "Przepełnienie, cofanie wstawienia"));
+	DEBUG(fprintf(stderr, "Przepełnienie, cofanie wstawienia\n"));
+	assert(false); // TODO
 	for(uint8_t i = maximum_number_of_displacements; i > 0; i--)
 	{
-		if(number % 2 == 0) // kubełek h1
+		tmp_h1 = h1;
+		tmp_h2 = h2;
+		tmp_log_file_offset = hash_table[undo[i - 1].h][undo[i - 1].number].offset;
+		if(undo[i].which == 0)
 		{
-			tmp_h2 = hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1]
-			.tag;
-			tmp_log_file_offset = hash_table[undo[i - 1].h >> 2]
-			[undo[i - 1].number >> 1].offset;
-			hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1].tag
-			= h2;
-			hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1].offset
-			= log_file_offset;
-			h2 = tmp_h2;
+			tmp_h2 = hash_table[undo[i - 1].h][undo[i - 1].number].tag;
+			hash_table[undo[i - 1].h][undo[i - 1].number].tag = h1;
 		}
-		else // kubełek h2
+		else
 		{
-			tmp_h1 = hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1]
-			.tag;
-			tmp_log_file_offset = hash_table[undo[i - 1].h >> 2]
-			[undo[i - 1].number >> 1].offset;
-			hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1].tag
-			= h2;
-			hash_table[undo[i - 1].h >> 2][undo[i - 1].number >> 1].offset
-			= log_file_offset;
-			h1 = tmp_h1;
+			tmp_h1 = hash_table[undo[i - 1].h][undo[i - 1].number].tag;
+			hash_table[undo[i - 1].h][undo[i - 1].number].tag = h2;
 		}
+		hash_table[undo[i - 1].h][undo[i - 1].number].offset = log_file_offset;
+		h1 = tmp_h1;
+		h2 = tmp_h2;
 		log_file_offset = tmp_log_file_offset;
-		number = undo[i - 1].number;
+
+        //printf("%" PRIu16 " %" PRIu8 "\n", undo[i - 1].h, undo[i - 1].number);
 	}
-	assert(h1 == (sha_key.h4 & h1_mask));
-	assert(h2 == ((sha_key.h4 & h2_mask) >> 16));
+	assert((h1 & 0xFFFC) == (sha_key.h4 & h1_mask));
+	assert((h2 & 0xFFFC) == ((sha_key.h4 & h2_mask) >> 16));
 	assert(log_file_offset == file_size);
 	// jeśli asercje nawalą, to znaczy, że źle odtwarzano
 	return false;
@@ -182,6 +213,23 @@ uint32_t log_file_offset, bool operation)
 			}
 		}
 		number++;
+	}
+	return false;
+}
+
+template<typename Key, typename Value>
+bool SILT::Log_store<Key, Value>::insert_into_bucket(uint16_t h1, uint32_t h2,
+uint32_t log_file_offset, bool operation)
+{
+	for(uint8_t number = 0; number < bucket_size; number++)
+	{
+		if((hash_table[h1 >> 2][number].tag & valid_bit) == 0)
+		{
+			hash_table[h1 >> 2][number].tag = ((operation == true)
+			? (h2 | operation_bit) : (h2 & ~operation_bit)) | valid_bit;
+			hash_table[h1 >> 2][number].offset = log_file_offset;
+			return true;
+		}
 	}
 	return false;
 }
