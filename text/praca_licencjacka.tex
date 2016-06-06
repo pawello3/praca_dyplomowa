@@ -55,11 +55,15 @@
 		\section{SortedStore}
 		\section{Przepływ danych wewnątrz struktury}
 		\section{Rozszerzenia}
+			Struktura SILT może być rozszerzona tak, aby umożliwić równoległe przetwarzanie transakcji (w rozumieniu bazy danych). Dodatkowo można jeszcze bardziej amortyzować czas, który jest poświęcany na konwersję z jednego magazynu danych do drugiego stosując konwersję równolegle do obsługi zapytań.\\
+			\indent Innym ważnym aspektem jest możliwość odtwarzania danych po awarii. Do tego celu wystarczy zapamiętywać w osobnym dzienniku w pamięci flash kolejne operacje zlecone do LogStore'u. Po awarii, aby odzyskać tablicę trzymaną w pamięci RAM, należy po kolei odtworzyć operacje zapisane w dzienniku. Dla pozostałych magazynów możemy pamiętać kopię informacji z pamięci RAM na dysku, gdyż są one strukturami tylko do odczytu.\\
+			\indent W przypadku dużego obciążenia pamięci RAM można, kosztem czasu dostępu, usunąć z niej tablice indeksujące dla HashStore'ów i SortedStore'ów, pod warunkiem, że zostaną zapamiętane w pamięci flash. Dla SortedStore możliwe jest nawet kompletne pominięcie struktury drzew trie, ale wiąże się to z kosztownym przeszukiwaniem binarnym.\\
+			\indent Jeśli chcielibyśmy wykorzystać strukturę SILT do przechowywania par klucz-wartość o zmiennej długości, to możemy użyć techniki przechowywania par (przesunięcie, fragment pary klucz-wartość), gdzie przesunięcie odnosi się do odrębnego pliku, w którym zapamiętane są właściwe dane.
 	\chapter{Analiza teoretyczna}
-		\section{Koszt operacji słownikowych}
 		\section{Haszowanie kukułcze}
 		\section{Fałszywe pozytywne wskazania}
 		\section{Drzewa trie}
+		\section{Koszt operacji słownikowych}
 	\chapter{Analiza porównawcza}
 		\section{Opis eksperymentu}
 		\section{Wyniki}

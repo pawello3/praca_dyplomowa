@@ -40,10 +40,13 @@ $(AUXILARY): $(TEXT_DIRECTORY)/$(TEXT).tex
 	cd ..;\
 	mv $(AUXILARY_DIRECTORY)/$(TEXT).pdf $(TEXT_DIRECTORY);\
 
+.PHONY: aspell clean distclean
+
+zip: clean
+	zip -r $(TEXT).zip code text Makefile
+
 aspell:
 	cat $(TEXT_DIRECTORY)/$(TEXT).tex | aspell -l pl_PL -t list | aspell -l en -t list | sort -u
-
-.PHONY: aspell cleanfoo clean
 
 clean:
 	find . -name "*.o" -type f -exec rm '{}' \;
