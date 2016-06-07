@@ -34,13 +34,6 @@ namespace SILT
 		uint32_t offset; // liczba par klucz-wartość poprzedzających dany wpis
 	};
 
-	struct Undo_entry
-	{
-		uint16_t h;
-		uint8_t number;
-		bool which;
-	};
-
 	template<typename Value>
 	class Hash_store;
 
