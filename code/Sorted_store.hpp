@@ -8,21 +8,22 @@
 #ifndef SORTED_STORE_HPP_INCLUDED
 #define SORTED_STORE_HPP_INCLUDED
 
+#include "SILT_key.hpp"
 #include "Hash_store.hpp"
 
 namespace SILT
 {
-	template<typename Key, typename Value>
+	template<typename Value>
 	class Sorted_store final
 	{
 		private:
 			FILE* const sorted_store_file;
 
 		public:
-			Sorted_store(Hash_store_list<Key, Value>* hash_store_list);
+			Sorted_store(Hash_store_list<Value>* hash_store_list);
 			~Sorted_store(void);
 
-			Value* get_value(const Key& key) const;
+			Value* get_value(const SILT_key& key) const;
 	};
 }
 

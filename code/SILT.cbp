@@ -29,6 +29,8 @@
 		<Unit filename="Hash_store.tpp" />
 		<Unit filename="Log_store.hpp" />
 		<Unit filename="Log_store.tpp" />
+		<Unit filename="SILT_key.hpp" />
+		<Unit filename="SILT_key.tpp" />
 		<Unit filename="Small_Index_Large_Table.hpp" />
 		<Unit filename="Small_Index_Large_Table.tpp" />
 		<Unit filename="Sorted_store.hpp" />

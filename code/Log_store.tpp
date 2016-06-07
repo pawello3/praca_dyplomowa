@@ -6,18 +6,13 @@
 */
 
 #include "debug.hpp"
-#include <arpa/inet.h>
 #include <cstring>
-#include <type_traits>
 #include <cstdlib>
 #include <ctime>
 
-#define LEFTROTATE_32(a, b)\
-ntohl((((htonl(a) << (b))) | (htonl(a) >> (32-(b)))))
-
-template<typename Key, typename Value>
-SILT::Log_store<Key, Value>::Log_store(void)
-	:log_entry_size(sizeof(Key) + sizeof(Value))
+template<typename Value>
+SILT::Log_store<Value>::Log_store(void)
+	:log_entry_size(sizeof(SILT_key) + sizeof(Value))
 	,log_store_file(fopen("Log_store.dat", "wb+"))
 	,file_size(0)
 {
@@ -35,8 +30,8 @@ SILT::Log_store<Key, Value>::Log_store(void)
 	}
 }
 
-template<typename Key, typename Value>
-SILT::Log_store<Key, Value>::~Log_store(void)
+template<typename Value>
+SILT::Log_store<Value>::~Log_store(void)
 {
 	for(uint32_t i = 0; i < hash_table_size; i++)
 		delete[] hash_table[i];
@@ -49,39 +44,51 @@ SILT::Log_store<Key, Value>::~Log_store(void)
 	}
 }
 
-template<typename Key, typename Value>
-bool SILT::Log_store<Key, Value>::insert(const Key& key, const Value& value)
-/* haszowanie kukułcze dla częściowych kluczy */
+template<typename Value>
+bool SILT::Log_store<Value>::insert(const SILT_key& key, const Value& value)
 {
-	return insert(key, value, true);
-}
+	uint16_t h1 = key.h4 & h1_mask;
+	uint16_t h2 = (key.h4 & h2_mask) >> 16;
 
-template<typename Key, typename Value>
-bool SILT::Log_store<Key, Value>::insert(const Key& key, const Value& value,
-bool operation)
-{
-	SILT_key sha_key;
-	SHA_1(key, sizeof(key), &sha_key);
-	uint16_t h1 = sha_key.h4 & h1_mask;
-	uint16_t h2 = (sha_key.h4 & h2_mask) >> 16;
-
-	/*DEBUG(PRINT_BYTES_32(sha_key.h4));
-	DEBUG(PRINT_BYTES_16(h1));
-	DEBUG(PRINT_BYTES_16(h2));*/
-
-	uint32_t log_file_offset = file_size;
-	if(insert_into_buckets(h1, h2, log_file_offset, operation) == true)
+	/* sprawdzamy czy klucz jest w tablicy, aby podmienić dane na dysku oraz
+	rodzaj operacji i przesunięcie w pliku pamiętane w tablicy */
+	uint8_t bucket_index;
+	if(look_up(h1, h2, &bucket_index))
 	{
-		fseek(log_store_file, file_size * log_entry_size, SEEK_SET);
-		fwrite((void*) &key, sizeof(Key), 1, log_store_file);
-		fwrite((void*) &value, sizeof(Value), 1, log_store_file);
-		file_size++;
+		if(check_key_matching(key, hash_table[h1 >> 2][bucket_index].offset))
+		{
+			hash_table[h1 >> 2][bucket_index].tag |= operation_bit;
+			modify_entry_in_log_store_file(key, value, hash_table[h1 >> 2]
+			[bucket_index].offset);
+			return true;
+		}
+	}
+	if(look_up(h2, h1, &bucket_index))
+	{
+		if(check_key_matching(key, hash_table[h2 >> 2][bucket_index].offset))
+		{
+			hash_table[h2 >> 2][bucket_index].tag |= operation_bit;
+			modify_entry_in_log_store_file(key, value, hash_table[h2 >> 2]
+			[bucket_index].offset);
+			return true;
+		}
+	}
+
+	// sprawdzamy czy można wstawić do tablicy nowy klucz
+	uint32_t log_file_offset = file_size;
+	if(insert_into_bucket(h1, h2, log_file_offset)
+	|| insert_into_bucket(h2, h1, log_file_offset))
+	{
+		append_entry_to_log_store_file(key, value);
 		return true;
 	}
+
+	assert(false); // TODO
+
 	/*
-		Od teraz
-		Element X, który nie ma jeszcze swojej pozycji (wyrzucony), znajduje się
-		w schowku reprezentowanym jako:
+		W tym miejscu stosujemy haszowanie kukułcze dla częściowych kluczy.
+		Od teraz element X, który nie ma jeszcze swojej pozycji (wyrzucony),
+		znajduje się w schowku reprezentowanym jako:
 			h1 - pierwszy kubełek (tam go odsyłamy) dla elementu wyrzuconego
 			h2 - kubełek alternatywny (znajdzie się w znaczniku)
 			log_file_offset - przesunięcie związane z tym elementem
@@ -95,14 +102,14 @@ bool operation)
 			tmp_h2 - kubełek alternatywny (znajdzie się w znaczniku)
 			tmp_log_file_offset - przesunięcie związane z tym elementem
 
-		Po wstawieniu elementu X ze schowka na jego miejsce, umieszczamy w nim
-		element Y.
+		Po wstawieniu elementu X ze schowka na jego miejsce, umieszczamy
+		w schowku element Y.
 	*/
 
-	h1 = ((operation == true) ? (h1 | operation_bit) : (h1 & ~operation_bit))
-	| valid_bit;
-	h2 = ((operation == true) ? (h2 | operation_bit) : (h2 & ~operation_bit))
-	| valid_bit;
+	//h1 = h1 | operation_bit | valid_bit;
+	//h2 = h2 | operation_bit | valid_bit;
+
+	/* STARY_KOD
 	srand(time(nullptr));
 	uint8_t number = rand() % (bucket_size << 1);
 	uint16_t tmp_h1;
@@ -112,8 +119,8 @@ bool operation)
 	for(uint8_t i = 0; i < maximum_number_of_displacements; i++)
 	{
 		if(number % 2 == 0) // kubełek h1
-		/* poprzednio wyrzuciliśmy element z kubełka h2 i chcieliśmy go wrzucić
-		do h1, ale się nie udało, więc wrzucamy na siłę i wyrzucamy inny */
+		/ * poprzednio wyrzuciliśmy element z kubełka h2 i chcieliśmy go wrzucić
+		do h1, ale się nie udało, więc wrzucamy na siłę i wyrzucamy inny * /
 		{
 			tmp_h1 = hash_table[h1 >> 2][number >> 1].tag;
 			tmp_h2 = h1;
@@ -126,8 +133,8 @@ bool operation)
 			number = 1;
 		}
 		else // kubełek h2
-		/* poprzednio wyrzuciliśmy element z kubełka h1 i chcieliśmy go wrzucić
-		do h2, ale się nie udało, więc wrzucamy na siłę i wyrzucamy inny */
+		/ * poprzednio wyrzuciliśmy element z kubełka h1 i chcieliśmy go wrzucić
+		do h2, ale się nie udało, więc wrzucamy na siłę i wyrzucamy inny * /
 		{
 			tmp_h1 = h2;
 			tmp_h2 = hash_table[h2 >> 2][number >> 1].tag;
@@ -142,10 +149,10 @@ bool operation)
 		h1 = tmp_h1;
 		h2 = tmp_h2;
 		log_file_offset = tmp_log_file_offset;
-		if(insert_into_bucket(h1, h2, log_file_offset, operation) == true)
+		if(insert_into_bucket(h1, h2, log_file_offset, true) == true)
 		{
 			fseek(log_store_file, file_size * log_entry_size, SEEK_SET);
-			fwrite((void*) &key, sizeof(Key), 1, log_store_file);
+			fwrite((void*) &key, sizeof(SILT_key), 1, log_store_file);
 			fwrite((void*) &value, sizeof(Value), 1, log_store_file);
 			file_size++;
 			return true;
@@ -158,7 +165,8 @@ bool operation)
 	{
 		tmp_h1 = h1;
 		tmp_h2 = h2;
-		tmp_log_file_offset = hash_table[undo[i - 1].h][undo[i - 1].number].offset;
+		tmp_log_file_offset = hash_table[undo[i - 1].h][undo[i - 1].number]
+		.offset;
 		if(undo[i].which == 0)
 		{
 			tmp_h2 = hash_table[undo[i - 1].h][undo[i - 1].number].tag;
@@ -176,271 +184,151 @@ bool operation)
 
         //printf("%" PRIu16 " %" PRIu8 "\n", undo[i - 1].h, undo[i - 1].number);
 	}
-	assert((h1 & 0xFFFC) == (sha_key.h4 & h1_mask));
-	assert((h2 & 0xFFFC) == ((sha_key.h4 & h2_mask) >> 16));
+	STARY_KOD */
+
+	assert((h1 & 0xFFFC) == (key.h4 & h1_mask));
+	assert((h2 & 0xFFFC) == ((key.h4 & h2_mask) >> 16));
 	assert(log_file_offset == file_size);
-	// jeśli asercje nawalą, to znaczy, że źle odtwarzano
+	// jeśli któraś asercja się wywali, tzn., że źle odtwarzano stan tablicy
 	return false;
 }
 
-template<typename Key, typename Value>
-bool SILT::Log_store<Key, Value>::insert_into_buckets(uint16_t h1, uint32_t h2,
-uint32_t log_file_offset, bool operation)
+template<typename Value>
+bool SILT::Log_store<Value>::look_up(uint16_t h_index, uint16_t h_tag,
+uint8_t* bucket_index) const
 {
-	uint8_t number = 0;
-	while(number < (bucket_size << 1))
+	for(uint8_t i = 0; i < bucket_size; i++)
 	{
-		if(number % 2 == 0) // kubełek h1
+		if((hash_table[h_index >> 2][i].tag & ~operation_bit) == (h_tag
+		| valid_bit))
 		{
-			if((hash_table[h1 >> 2][number >> 1].tag & valid_bit) == 0)
-			{
-				hash_table[h1 >> 2][number >> 1].tag
-				= ((operation == true) ? (h2 | operation_bit)
-				: (h2 & ~operation_bit)) | valid_bit;
-				hash_table[h1 >> 2][number >> 1].offset = log_file_offset;
-				return true;
-			}
+			*bucket_index = i;
+			return true;
 		}
-		else // kubełek h2
-		{
-			if((hash_table[h2 >> 2][number >> 1].tag & valid_bit) == 0)
-			{
-				hash_table[h2 >> 2][number >> 1].tag
-				= ((operation == true) ? (h1 | operation_bit)
-				: (h1 & ~operation_bit)) | valid_bit;
-				hash_table[h2 >> 2][number >> 1].offset = log_file_offset;
-				return true;
-			}
-		}
-		number++;
 	}
+
 	return false;
 }
 
-template<typename Key, typename Value>
-bool SILT::Log_store<Key, Value>::insert_into_bucket(uint16_t h1, uint32_t h2,
-uint32_t log_file_offset, bool operation)
+template<typename Value>
+bool SILT::Log_store<Value>::check_key_matching(const SILT_key& key,
+uint32_t log_file_offset) const
 {
-	for(uint8_t number = 0; number < bucket_size; number++)
+	fseek(log_store_file, log_file_offset * log_entry_size, SEEK_SET);
+	SILT_key found_key;
+	if(fread((void*) &found_key, sizeof(SILT_key), 1, log_store_file)
+	!= 1)
 	{
-		if((hash_table[h1 >> 2][number].tag & valid_bit) == 0)
+		fprintf(stderr, "fread error\n");
+		exit(1);
+	}
+	return found_key == key;
+}
+
+template<typename Value>
+void SILT::Log_store<Value>::modify_entry_in_log_store_file(const SILT_key& key,
+const Value& value, uint32_t log_file_offset)
+{
+	fseek(log_store_file, log_file_offset * log_entry_size, SEEK_SET);
+	fwrite((void*) &key, sizeof(SILT_key), 1, log_store_file);
+	fwrite((void*) &value, sizeof(Value), 1, log_store_file);
+}
+
+template<typename Value>
+bool SILT::Log_store<Value>::insert_into_bucket(uint16_t h_index,
+uint16_t h_tag, uint32_t log_file_offset)
+{
+	for(uint8_t i = 0; i < bucket_size; i++)
+	{
+		if((hash_table[h_index >> 2][i].tag & valid_bit) == 0)
 		{
-			hash_table[h1 >> 2][number].tag = ((operation == true)
-			? (h2 | operation_bit) : (h2 & ~operation_bit)) | valid_bit;
-			hash_table[h1 >> 2][number].offset = log_file_offset;
+			hash_table[h_index >> 2][i].tag = h_tag | operation_bit | valid_bit;
+			hash_table[h_index >> 2][i].offset = log_file_offset;
 			return true;
 		}
 	}
 	return false;
 }
 
-template<typename Key, typename Value>
-bool SILT::Log_store<Key, Value>::remove(const Key& key)
+template<typename Value>
+void SILT::Log_store<Value>::append_entry_to_log_store_file(const SILT_key& key,
+const Value& value)
 {
-	Value* value = new Value();
-	return insert(key, *value, false);
+	fseek(log_store_file, file_size * log_entry_size, SEEK_SET);
+	fwrite((void*) &key, sizeof(SILT_key), 1, log_store_file);
+	fwrite((void*) &value, sizeof(Value), 1, log_store_file);
+	file_size++;
 }
 
-template<typename Key, typename Value>
-Value* SILT::Log_store<Key, Value>::get_value(const Key& key, bool* reason)
+template<typename Value>
+void SILT::Log_store<Value>::remove(const SILT_key& key)
+{
+	uint16_t h1 = key.h4 & h1_mask;
+	uint16_t h2 = (key.h4 & h2_mask) >> 16;
+
+	uint8_t bucket_index;
+	if(look_up(h1, h2, &bucket_index)) // kubełek 1
+	{
+		if(check_key_matching(key, hash_table[h1 >> 2][bucket_index].offset))
+		{
+			hash_table[h1 >> 2][bucket_index].tag &= ~operation_bit;
+			return;
+		}
+	}
+
+	if(look_up(h2, h1, &bucket_index)) // kubełek 2
+	{
+		if(check_key_matching(key, hash_table[h2 >> 2][bucket_index].offset))
+		{
+			hash_table[h2 >> 2][bucket_index].tag &= ~operation_bit;
+			return;
+		}
+	}
+}
+
+template<typename Value>
+Value* SILT::Log_store<Value>::get_value(const SILT_key& key, bool* reason)
 const
 {
 	*reason = false;
-	SILT_key sha_key;
-	SHA_1(key, sizeof(key), &sha_key);
-	uint16_t h1 = sha_key.h4 & h1_mask;
-	uint16_t h2 = (sha_key.h4 & h2_mask) >> 16;
+	uint16_t h1 = key.h4 & h1_mask;
+	uint16_t h2 = (key.h4 & h2_mask) >> 16;
 
-	uint8_t number = 0;
-	while(number < (bucket_size << 1))
+	uint8_t bucket_index;
+	uint32_t log_file_offset;
+	if(look_up(h1, h2, &bucket_index)) // kubełek 1
 	{
-		// odwrotna kolejność przeglądania, najpierw kubełek h2 i od dołu
-		if(number % 2 == 1) // kubełek h1
+		if((hash_table[h1 >> 2][bucket_index].tag & operation_bit) == 0)
 		{
-			if((hash_table[h1 >> 2][bucket_size - 1 - (number >> 1)].tag
-			& ~operation_bit) == (h2 | valid_bit))
-			{
-				if((hash_table[h1 >> 2][bucket_size - 1 - (number >> 1)].tag
-				& operation_bit) == 0)
-				{
-					*reason = true;
-					return nullptr; // wpis usuwający
-				}
-				fseek(log_store_file,
-				hash_table[h1 >> 2][bucket_size - 1 - (number >> 1)]
-				.offset * log_entry_size, SEEK_SET);
-				Key found_key;
-				if(fread((void*) &found_key, sizeof(Key), 1, log_store_file)
-				!= 1)
-				{
-					fprintf(stderr, "fread error\n");
-					exit(1);
-				}
-				if(found_key == key)
-				{
-					Value* returned_value = new Value();
-					if(fread((void*) returned_value, sizeof(Value), 1,
-					log_store_file) != 1)
-					{
-						fprintf(stderr, "fread error\n");
-						exit(1);
-					}
-					return returned_value;
-				}
-			}
+			*reason = true;
+			return nullptr; // wpis usuwający
 		}
-		else // kubełek h2
-		{
-			if((hash_table[h2 >> 2][bucket_size - 1 - (number >> 1)].tag
-			& ~operation_bit) == (h1 | valid_bit))
-			{
-				if((hash_table[h2 >> 2][bucket_size - 1 - (number >> 1)].tag
-				& operation_bit) == 0)
-				{
-					*reason = true;
-					return nullptr; // wpis usuwający
-				}
-				fseek(log_store_file,
-				hash_table[h2 >> 2][bucket_size - 1 - (number >> 1)]
-				.offset * log_entry_size, SEEK_SET);
-				Key found_key;
-				if(fread((void*) &found_key, sizeof(Key), 1, log_store_file)
-				!= 1)
-				{
-					fprintf(stderr, "fread error\n");
-					exit(1);
-				}
-				if(found_key == key)
-				{
-					Value* returned_value = new Value();
-					if(fread((void*) returned_value, sizeof(Value), 1,
-					log_store_file) != 1)
-					{
-						fprintf(stderr, "fread error\n");
-						exit(1);
-					}
-					return returned_value;
-				}
-			}
-		}
-		number++;
+		log_file_offset = hash_table[h1 >> 2][bucket_index].offset;
 	}
+	else if(look_up(h2, h1, &bucket_index)) // kubełek 2
+	{
+		if((hash_table[h2 >> 2][bucket_index].tag & operation_bit) == 0)
+		{
+			*reason = true;
+			return nullptr; // wpis usuwający
+		}
+		log_file_offset = hash_table[h2 >> 2][bucket_index].offset;
+	}
+	else // w żadnym nie ma
+	{
+		return nullptr;
+	}
+
+	if(check_key_matching(key, log_file_offset))
+	{
+		Value* returned_value = new Value();
+		if(fread((void*) returned_value, sizeof(Value), 1, log_store_file) != 1)
+		{
+			fprintf(stderr, "fread error\n");
+			exit(1);
+		}
+		return returned_value;
+	}
+
 	return nullptr;
-}
-
-template<typename Key, typename Value>
-void SILT::Log_store<Key, Value>::SHA_1(Key key, uint32_t key_size,
-SILT::SILT_key* returned_key)
-{
-	returned_key->h0 = ntohl(0x67452301);
-	returned_key->h1 = ntohl(0xEFCDAB89);
-	returned_key->h2 = ntohl(0x98BADCFE);
-	returned_key->h3 = ntohl(0x10325476);
-	returned_key->h4 = ntohl(0xC3D2E1F0);
-
-	uint32_t number_of_bits = key_size << 3;
-	number_of_bits++; // dodawanie '1' na koniec
-	if(number_of_bits % 512 < 448)
-		number_of_bits += 448 - number_of_bits % 512;
-	else if(number_of_bits % 512 > 448)
-		number_of_bits += 512 - number_of_bits % 512 + 448;
-	number_of_bits += 64;
-	assert(number_of_bits % 512 == 0);
-
-	uint8_t* array = new uint8_t[64];
-	memset((void*) array, 0, 64); // zerowanie
-	memcpy((void*) array, (const void*) &key, key_size); /* kopiowanie klucza na
-	początek tablicy */
-	array[key_size] = 0x80; // ustawienie '1'
-	uint64_t size = key_size << 3;
-	array[62] = (size & 0xFFFFFFFF00000000) >> 32; // dodanie długości na koniec
-	array[63] = size & 0x00000000FFFFFFFF; // dodanie długości na koniec
-
-	uint32_t number_of_chunks = number_of_bits / 512;
-	uint32_t** chunks = new uint32_t*[number_of_chunks];
-	for(uint32_t i = 0; i < number_of_chunks; i++)
-	{
-		chunks[i] = new uint32_t[80]; // kopiowanie do 16 słów, reszta później
-		memset(chunks[i], 0, 320);
-		memcpy(chunks[i], (void*) (array + i * 64), 64);
-	}
-
-	uint32_t word;
-	for(uint32_t i = 0; i < number_of_chunks; i++)
-	{
-		for(uint32_t j = 16; j < 80; j++) // roszerzanie do 80 słów
-		{
-			word = (((chunks[i][j - 3] ^ chunks[i][j - 8]) ^ chunks[i][j - 14])
-			^ chunks[i][j - 16]);
-			chunks[i][j] = LEFTROTATE_32(word, 1);
-		}
-	}
-
-	uint32_t a, b, c, d, e, f, k, temp;
-	for(uint8_t i = 0; i < number_of_chunks; i++) // iteracja po kawałkach
-	{
-		a = returned_key->h0;
-		b = returned_key->h1;
-		c = returned_key->h2;
-		d = returned_key->h3;
-		e = returned_key->h4;
-		for(uint8_t j = 0; j < 20; j++) // główna pętla dla konkretnego kawałka
-		{
-			f = (b & c) | ((~b) & d);
-			k = ntohl(0x5A827999);
-			temp = ntohl(htonl(LEFTROTATE_32(a, 5)) + htonl(f) + htonl(e)
-			+ htonl(k) + htonl(chunks[i][j]));
-			e = d;
-			d = c;
-			c = LEFTROTATE_32(b, 30);
-			b = a;
-			a = temp;
-		}
-		for(uint8_t j = 20; j < 40; j++)
-		{
-			f = b ^ c ^ d;
-			k = ntohl(0x6ED9EBA1);
-			temp = ntohl(htonl(LEFTROTATE_32(a, 5)) + htonl(f) + htonl(e)
-			+ htonl(k) + htonl(chunks[i][j]));
-			e = d;
-			d = c;
-			c = LEFTROTATE_32(b, 30);
-			b = a;
-			a = temp;
-		}
-		for(uint8_t j = 40; j < 60; j++)
-		{
-			f = (b & c) | (b & d) | (c & d);
-			k = ntohl(0x8F1BBCDC);
-			temp = ntohl(htonl(LEFTROTATE_32(a, 5)) + htonl(f) + htonl(e)
-			+ htonl(k) + htonl(chunks[i][j]));
-			e = d;
-			d = c;
-			c = LEFTROTATE_32(b, 30);
-			b = a;
-			a = temp;
-		}
-		for(uint8_t j = 60; j < 80; j++)
-		{
-			f = b ^ c ^ d;
-			k = ntohl(0xCA62C1D6);
-			temp = ntohl(htonl(LEFTROTATE_32(a, 5)) + htonl(f) + htonl(e)
-			+ htonl(k) + htonl(chunks[i][j]));
-			e = d;
-			d = c;
-			c = LEFTROTATE_32(b, 30);
-			b = a;
-			a = temp;
-		}
-		returned_key->h0 = ntohl(htonl(a) + htonl(returned_key->h0));
-		returned_key->h1 = ntohl(htonl(b) + htonl(returned_key->h1));
-		returned_key->h2 = ntohl(htonl(c) + htonl(returned_key->h2));
-		returned_key->h3 = ntohl(htonl(d) + htonl(returned_key->h3));
-		returned_key->h4 = ntohl(htonl(e) + htonl(returned_key->h4));
-	}
-
-	delete[] array;
-	for(uint32_t i = 0; i < number_of_chunks; i++)
-		delete[] chunks[i];
-	delete[] chunks;
 }

@@ -8,6 +8,7 @@
 #ifndef SMALL_INDEX_LARGE_TABLE_HPP_INCLUDED
 #define SMALL_INDEX_LARGE_TABLE_HPP_INCLUDED
 
+#include "SILT_key.hpp"
 #include "Log_store.hpp"
 #include "Hash_store.hpp"
 #include "Sorted_store.hpp"
@@ -24,9 +25,9 @@ namespace SILT
 	class Small_Index_Large_Table final
 	{
 		private:
-			Log_store<Key, Value>* log_store;
-			Hash_store_list<Key, Value>* hash_store_list;
-			Sorted_store<Key, Value>* sorted_store;
+			Log_store<Value>* log_store;
+			Hash_store_list<Value>* hash_store_list;
+			Sorted_store<Value>* sorted_store;
 
 		public:
 			Small_Index_Large_Table(void);

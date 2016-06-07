@@ -7,7 +7,7 @@
 
 template<typename Key, typename Value>
 SILT::Small_Index_Large_Table<Key, Value>::Small_Index_Large_Table(void)
-	:log_store(new Log_store<Key, Value>())
+	:log_store(new Log_store<Value>())
 	,hash_store_list(nullptr)
 	,sorted_store(nullptr)
 {
@@ -48,7 +48,7 @@ const
 		return returned_value;
 
 	// sprawdzenie w Hash store'ach
-	Hash_store_list_node<Key, Value>* node = hash_store_list->get_head();
+	Hash_store_list_node<Value>* node = hash_store_list->get_head();
 	while(node != nullptr)
 	{
 		returned_value = node->get_data()->get_value(key, &reason);

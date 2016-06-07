@@ -5,21 +5,21 @@
 	wysoce wydajnej tablicy asocjacyjnej SILT (Small Index Large Table)
 */
 
-template<typename Key, typename Value>
-SILT::Sorted_store<Key, Value>::Sorted_store(SILT::Hash_store_list<Key, Value>*
+template<typename Value>
+SILT::Sorted_store<Value>::Sorted_store(SILT::Hash_store_list<Value>*
 hash_store_list)
 {
 	assert(false); // TODO
 }
 
-template<typename Key, typename Value>
-SILT::Sorted_store<Key, Value>::~Sorted_store(void)
+template<typename Value>
+SILT::Sorted_store<Value>::~Sorted_store(void)
 {
 	assert(false); // TODO
 }
 
-template<typename Key, typename Value>
-Value* SILT::Sorted_store<Key, Value>::get_value(const Key& key) const
+template<typename Value>
+Value* SILT::Sorted_store<Value>::get_value(const SILT_key& key) const
 {
 	assert(false); // TODO
 }

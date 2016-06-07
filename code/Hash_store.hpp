@@ -9,11 +9,12 @@
 #define HASH_STORE_HPP_INCLUDED
 
 #include <cstdio>
+#include "SILT_key.hpp"
 #include "Log_store.hpp"
 
 namespace SILT
 {
-	template<typename Key, typename Value>
+	template<typename Value>
 	class Hash_store final
 	{
 		private:
@@ -24,10 +25,10 @@ namespace SILT
 			FILE* const hash_store_file;
 
 		public:
-			Hash_store(Log_store<Key, Value>* log_store);
+			Hash_store(Log_store<Value>* log_store);
 			~Hash_store(void);
 
-			Value* get_value(const Key& key, bool* reason) const;
+			Value* get_value(const SILT_key& key, bool* reason) const;
 
 		private:
 			char* next_id(void);
@@ -35,43 +36,43 @@ namespace SILT
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename Key, typename Value>
+	template<typename Value>
 	class Hash_store_list;
 
-	template<typename Key, typename Value>
+	template<typename Value>
 	class Hash_store_list_node final
 	{
-		friend class Hash_store_list<Key, Value>;
+		friend class Hash_store_list<Value>;
 
 		private:
-			Hash_store<Key, Value>* data;
-			Hash_store_list_node<Key, Value>* previous;
-			Hash_store_list_node<Key, Value>* next;
+			Hash_store<Value>* data;
+			Hash_store_list_node<Value>* previous;
+			Hash_store_list_node<Value>* next;
 
 		public:
-			Hash_store_list_node(Hash_store<Key, Value>* data);
+			Hash_store_list_node(Hash_store<Value>* data);
 			~Hash_store_list_node(void);
 
-			Hash_store<Key, Value>* get_data(void) const;
-			Hash_store_list_node<Key, Value>* get_next(void) const;
+			Hash_store<Value>* get_data(void) const;
+			Hash_store_list_node<Value>* get_next(void) const;
 	};
 
 ////////////////////////////////////////////////////////////////////////////////
 
-	template<typename Key, typename Value>
+	template<typename Value>
 	class Hash_store_list final
 	{
 		private:
-			Hash_store_list_node<Key, Value>* head;
+			Hash_store_list_node<Value>* head;
 			uint32_t size;
 
 		public:
 			Hash_store_list(void);
 			~Hash_store_list(void);
 
-			Hash_store_list_node<Key, Value>* get_head(void) const;
-			void prepend(Hash_store_list<Key, Value>* node);
-			void remove(Hash_store_list<Key, Value>* node);
+			Hash_store_list_node<Value>* get_head(void) const;
+			void prepend(Hash_store_list<Value>* node);
+			void remove(Hash_store_list<Value>* node);
 			uint32_t get_size(void) const;
 	};
 }
