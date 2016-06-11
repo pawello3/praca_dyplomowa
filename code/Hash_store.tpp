@@ -167,6 +167,7 @@ void SILT::Hash_store<Value>::sort()
 	Sorted_table_entry* sorted_table
 	= new Sorted_table_entry[sorted_table_size];
 	sorted_table_size = 0;
+	SILT_key key;
 	for(uint16_t i = 0; i < hash_table_size; i++)
 	{
 		for(uint8_t j = 0; j < bucket_size; j++)
@@ -175,12 +176,13 @@ void SILT::Hash_store<Value>::sort()
 			{
 				fseek(hash_store_file, (i * bucket_size + j)
 				* log_file_entry_size, SEEK_SET);
-				if(fread((void*) &sorted_table[sorted_table_size].key,
-				sizeof(SILT_key), 1, hash_store_file) != 1)
+				if(fread((void*) &key, sizeof(SILT_key), 1, hash_store_file)
+				!= 1)
 				{
 					fprintf(stderr, "fread error\n");
 					exit(1);
 				}
+				sorted_table[sorted_table_size].key_16 = key;
 				sorted_table[sorted_table_size].offset = i * bucket_size + j;
 				sorted_table[sorted_table_size].operation = (hash_table[i][j]
 				& operation_bit) ? 0x1 : 0x0;
@@ -220,8 +222,8 @@ void SILT::Hash_store<Value>::sort()
 			fprintf(stderr, "fread error\n");
 			exit(1);
 		}
-		fwrite((void*) &sorted_table[i].key, sizeof(SILT_key), 1,
-		sorted_hash_store_file);
+		key = sorted_table[i].key_16;
+		fwrite((void*) &key, sizeof(SILT_key), 1, sorted_hash_store_file);
 		fwrite((void*) &value, sizeof(Value), 1, sorted_hash_store_file);
 		fwrite((void*) &sorted_table[i].operation, sizeof(uint8_t), 1,
 		sorted_hash_store_file);
@@ -245,12 +247,38 @@ template<typename Value>
 void SILT::Hash_store<Value>::radix_sort(Sorted_table_entry* buckets_table,
 Sorted_table_entry* sorted_table, uint32_t sorted_table_size, uint16_t* count)
 {
+	/*printf("\n");
+	for(uint8_t i = 0; i < sorted_table_size; i++)
+	{
+		printf("%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05"
+		PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05"
+		PRIu16 "\n",
+		sorted_table[i].key_16.h0_l, sorted_table[i].key_16.h0_r,
+		sorted_table[i].key_16.h1_l, sorted_table[i].key_16.h1_r,
+		sorted_table[i].key_16.h2_l, sorted_table[i].key_16.h2_r,
+		sorted_table[i].key_16.h3_l, sorted_table[i].key_16.h3_r,
+		sorted_table[i].key_16.h4_l, sorted_table[i].key_16.h4_r);
+	}
+	printf("\n\n\n");*/
 	for(uint8_t i = 0; i < 10; i++)
 	{
 		memset(count, 0, (hash_table_size * bucket_size) << 1);
 		counting_sort(buckets_table, sorted_table, sorted_table_size,
 		10 - i - 1, count);
-		memcpy(sorted_table, buckets_table, sorted_table_size);
+		memcpy(sorted_table, buckets_table, sorted_table_size
+		* sizeof(Sorted_table_entry));
+		/*for(uint8_t i = 0; i < sorted_table_size; i++)
+		{
+			printf("%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05"
+			PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16
+			"|%05" PRIu16 "\n",
+			sorted_table[i].key_16.h0_l, sorted_table[i].key_16.h0_r,
+			sorted_table[i].key_16.h1_l, sorted_table[i].key_16.h1_r,
+			sorted_table[i].key_16.h2_l, sorted_table[i].key_16.h2_r,
+			sorted_table[i].key_16.h3_l, sorted_table[i].key_16.h3_r,
+			sorted_table[i].key_16.h4_l, sorted_table[i].key_16.h4_r);
+		}
+		printf("\n");*/
 	}
 }
 
@@ -264,9 +292,8 @@ uint16_t* count)
 	{
 		memcpy(&key, ((uint8_t*) (sorted_table + i)) + (fragment << 1), 2);
 		PRINT_UINT_16(key);
-		printf("\n");
 	}
-	printf("KONIEC\n\n");*/
+	printf("\n");*/
 	for(uint32_t i = 0; i < sorted_table_size; i++)
 	{
 		memcpy(&key, ((uint8_t*) (sorted_table + i)) + (fragment << 1), 2);
@@ -289,8 +316,8 @@ uint16_t* count)
 	{
 		memcpy(&key, ((uint8_t*) (buckets_table + i)) + (fragment << 1), 2);
 		PRINT_UINT_16(key);
-		printf("\n");
-	}*/
+	}
+	printf("\n\n");*/
 }
 
 ////////////////////////////////////////////////////////////////////////////////

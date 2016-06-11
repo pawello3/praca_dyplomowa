@@ -18,7 +18,7 @@ namespace SILT
 
 	struct Sorted_table_entry
 	{
-		SILT_key key;
+		SILT_key_16 key_16;
 		uint16_t offset;
 		uint8_t operation; // zapamiętuje wartość operation_bit
 	};

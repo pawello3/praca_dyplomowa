@@ -26,8 +26,8 @@ namespace SILT
 	inline bool operator<(const Merge_heap_element& lhs,
 	const Merge_heap_element& rhs)
 	{
-		if(lhs.entry.key != rhs.entry.key)
-			return lhs.entry.key < rhs.entry.key;
+		if(lhs.entry.key_16 != rhs.entry.key_16)
+			return lhs.entry.key_16 < rhs.entry.key_16;
 		return lhs.list_number < rhs.list_number;
 	}
 

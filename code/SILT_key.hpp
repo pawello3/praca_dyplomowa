@@ -13,6 +13,8 @@
 
 namespace SILT
 {
+	struct SILT_key_16;
+
 	struct SILT_key
 	{
 		uint32_t h0;
@@ -21,6 +23,7 @@ namespace SILT
 		uint32_t h3;
 		uint32_t h4;
 
+		SILT_key& operator=(const SILT_key_16& rhs);
 		friend bool operator==(const SILT_key& lhs, const SILT_key& rhs);
 		friend bool operator!=(const SILT_key& lhs, const SILT_key& rhs);
 		friend bool operator<(const SILT_key& lhs, const SILT_key& rhs);
@@ -45,6 +48,73 @@ namespace SILT
 	inline bool operator>(const SILT::SILT_key& lhs, const SILT::SILT_key& rhs)
 	{
 		return rhs < lhs;
+	}
+
+	struct SILT_key_16 // SILT key rozbity na 16-bitowe fragmenty
+	{
+		uint16_t h0_l;
+		uint16_t h0_r;
+		uint16_t h1_l;
+		uint16_t h1_r;
+		uint16_t h2_l;
+		uint16_t h2_r;
+		uint16_t h3_l;
+		uint16_t h3_r;
+		uint16_t h4_l;
+		uint16_t h4_r;
+
+		SILT_key_16& operator=(const SILT_key& rhs)
+		{
+			h0_l = (uint16_t) (rhs.h0 >> 16);
+			h0_r = (uint16_t) (rhs.h0 & 0x0000FFFF);
+			h1_l = (uint16_t) (rhs.h1 >> 16);
+			h1_r = (uint16_t) (rhs.h1 & 0x0000FFFF);
+			h2_l = (uint16_t) (rhs.h2 >> 16);
+			h2_r = (uint16_t) (rhs.h2 & 0x0000FFFF);
+			h3_l = (uint16_t) (rhs.h3 >> 16);
+			h3_r = (uint16_t) (rhs.h3 & 0x0000FFFF);
+			h4_l = (uint16_t) (rhs.h4 >> 16);
+			h4_r = (uint16_t) (rhs.h4 & 0x0000FFFF);
+			return *this;
+		}
+		friend bool operator==(const SILT_key_16& lhs, const SILT_key_16& rhs);
+		friend bool operator!=(const SILT_key_16& lhs, const SILT_key_16& rhs);
+		friend bool operator<(const SILT_key_16& lhs, const SILT_key_16& rhs);
+		friend bool operator>(const SILT_key_16& lhs, const SILT_key_16& rhs);
+	};
+
+	inline bool operator==(const SILT::SILT_key_16& lhs,
+	const SILT::SILT_key_16& rhs)
+	{
+		return !(memcmp(&lhs, &rhs, sizeof(SILT::SILT_key_16)));
+	}
+
+	inline bool operator!=(const SILT::SILT_key_16& lhs,
+	const SILT::SILT_key_16& rhs)
+	{
+		return !(lhs == rhs);
+	}
+
+	inline bool operator<(const SILT::SILT_key_16& lhs,
+	const SILT::SILT_key_16& rhs)
+	{
+		return memcmp(&lhs, &rhs, sizeof(SILT::SILT_key_16)) < 0;
+	}
+
+	inline bool operator>(const SILT::SILT_key_16& lhs,
+	const SILT::SILT_key_16& rhs)
+	{
+		return rhs < lhs;
+	}
+
+	inline SILT_key& SILT_key::operator=(const SILT_key_16& rhs)
+	{
+		h0 = (((uint32_t) (rhs.h0_l)) << 16) + ((uint32_t) (rhs.h0_r));
+		h1 = (((uint32_t) (rhs.h1_l)) << 16) + ((uint32_t) (rhs.h1_r));
+		h2 = (((uint32_t) (rhs.h2_l)) << 16) + ((uint32_t) (rhs.h2_r));
+		h3 = (((uint32_t) (rhs.h3_l)) << 16) + ((uint32_t) (rhs.h3_r));
+		h4 = (((uint32_t) (rhs.h4_l)) << 16) + ((uint32_t) (rhs.h4_r));
+		return *this;
 	}
 
 	template<typename Key>

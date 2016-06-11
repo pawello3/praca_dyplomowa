@@ -41,7 +41,7 @@ uint8_t* list_number)
 {
 	for(uint8_t i = 0; i < heap_size; i++)
 	{
-		if(heap_array[i].entry.key == element.entry.key)
+		if(heap_array[i].entry.key_16 == element.entry.key_16)
 		{
 			*list_number = heap_array[i].list_number;
 			swap(i, heap_size - 1);
