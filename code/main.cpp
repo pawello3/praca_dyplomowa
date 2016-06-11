@@ -11,6 +11,14 @@ int main()
 {
 	SILT::Log_store<double> log_store = SILT::Log_store<double>();
 	SILT::SILT_key key;
+	SILT::SHA_1(6452452, &key);
+	log_store.insert(key, 7.92);
+	SILT::SHA_1(7, &key);
+	log_store.insert(key, 7.93);
+	SILT::SHA_1(41234, &key);
+	log_store.insert(key, 7.94);
+	SILT::SHA_1(245376, &key);
+	log_store.insert(key, 7.95);
 	SILT::SHA_1(5, &key);
 	log_store.insert(key, 7.91);
 	log_store.insert(key, 3.6);
@@ -36,16 +44,7 @@ int main()
 		printf("%lf", *d);
 	else
 		printf("Key not found\n");
-	/*log_store.insert(5, 3.64656);
-	log_store.insert(5, 3.634);
-	log_store.insert(5, 3.6345);
-	log_store.insert(5, 3.67);
-	log_store.insert(6452452, 7.92);
-	log_store.insert(7, 7.93);
-	log_store.insert(7432, 7.94);
-	log_store.insert(73673, 7.95);
-	log_store.insert(7252457, 7.96);
-	*/
+	hash_store.sort();
 	//SILT::Sorted_store<double> sorted_store
 	//= SILT::Sorted_store<double>(hash_store_list);
 	//SILT::Small_Index_Large_Table<double> silt

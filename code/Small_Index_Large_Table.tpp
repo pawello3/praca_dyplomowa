@@ -40,7 +40,7 @@ const
 {
 	Value* returned_value = nullptr;
 
-	bool reason = false;
+	bool reason;
 
 	// sprawdzenie w Log store'rze
 	returned_value = log_store->get_value(key, &reason);

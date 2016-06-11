@@ -22,11 +22,29 @@ namespace SILT
 		uint32_t h4;
 
 		friend bool operator==(const SILT_key& lhs, const SILT_key& rhs);
+		friend bool operator!=(const SILT_key& lhs, const SILT_key& rhs);
+		friend bool operator<(const SILT_key& lhs, const SILT_key& rhs);
+		friend bool operator>(const SILT_key& lhs, const SILT_key& rhs);
 	};
 
 	inline bool operator==(const SILT::SILT_key& lhs, const SILT::SILT_key& rhs)
 	{
 		return !(memcmp(&lhs, &rhs, sizeof(SILT::SILT_key)));
+	}
+
+	inline bool operator!=(const SILT::SILT_key& lhs, const SILT::SILT_key& rhs)
+	{
+		return !(lhs == rhs);
+	}
+
+	inline bool operator<(const SILT::SILT_key& lhs, const SILT::SILT_key& rhs)
+	{
+		return memcmp(&lhs, &rhs, sizeof(SILT::SILT_key)) < 0;
+	}
+
+	inline bool operator>(const SILT::SILT_key& lhs, const SILT::SILT_key& rhs)
+	{
+		return rhs < lhs;
 	}
 
 	template<typename Key>

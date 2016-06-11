@@ -14,7 +14,7 @@
 
 namespace SILT
 {
-	constexpr uint32_t hash_table_size = 1 << 14; // znacznik 14-bitowy
+	constexpr uint16_t hash_table_size = 1 << 14; // znacznik ma 14 bitów
 	constexpr uint8_t bucket_size = 4;
 	constexpr uint8_t maximum_number_of_displacements = 64;
 	constexpr uint32_t h1_mask = 0x0000FFFC; // 2 ostatnie bity
@@ -31,7 +31,7 @@ namespace SILT
 			(1) O - bit rodzaju operacji (0 - usuwanie, 1 - wstawianie)
 			(1) V - bit zajętości miejsca w kubełku (0 - wolne, 1 - zajęte)
 		*/
-		uint32_t offset; // liczba par klucz-wartość poprzedzających dany wpis
+		uint16_t offset; // liczba par klucz-wartość poprzedzających dany wpis
 	};
 
 	template<typename Value>
@@ -43,11 +43,11 @@ namespace SILT
 		friend class Hash_store<Value>;
 
 		private:
-			char id[32];
 			Hash_table_entry** hash_table;
-			const uint32_t log_entry_size;
+			const uint8_t log_file_entry_size;
+			char file_name[32];
 			FILE* const log_store_file;
-			uint32_t file_size;
+			uint16_t file_size;
 
 		public:
 			Log_store(void);
@@ -74,14 +74,14 @@ namespace SILT
 			przypadku zwraca false i zawartość zmiennej bucket_index jest nie
 			zdefiniowana */
 			bool check_key_matching(const SILT_key& key,
-			uint32_t log_file_offset) const; /* zwraca true, gdy szukany klucz
+			uint16_t log_file_offset) const; /* zwraca true, gdy szukany klucz
 			key jest zapamiętany w pliku na dysku z przesunięciem
 			log_file_offset; w przeciwnym przypadku zwraca false */
 			void modify_entry_in_log_store_file(const SILT_key& key,
-			const Value& value, uint32_t log_file_offset); /* zmienia wpis
+			const Value& value, uint16_t log_file_offset); /* zmienia wpis
 			w pliku na dysku na nową parę klucz-wartość */
 			bool insert_into_bucket(uint16_t h_index, uint16_t h_tag,
-			uint32_t log_file_offset); /* zwraca true, gdy udało się wstawić
+			uint16_t log_file_offset); /* zwraca true, gdy udało się wstawić
 			do kubełka o indeksie h_index klucz o tagu h_tag i przesunięciu
 			w pliku równemu log_file_offset; w przeciwnym przypadku zwraca
 			false */

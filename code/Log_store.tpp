@@ -12,7 +12,7 @@
 
 template<typename Value>
 SILT::Log_store<Value>::Log_store(void)
-	:log_entry_size(sizeof(SILT_key) + sizeof(Value))
+	:log_file_entry_size(sizeof(SILT_key) + sizeof(Value))
 	,log_store_file(fopen("Log_store.dat", "wb+"))
 	,file_size(0)
 {
@@ -21,9 +21,9 @@ SILT::Log_store<Value>::Log_store(void)
 		fprintf(stderr, "fopen error\n");
 		exit(1);
 	}
-	strcpy(id, "Log_store.dat");
+	strcpy(file_name, "Log_store.dat");
 	hash_table = new Hash_table_entry*[hash_table_size];
-	for(uint32_t i = 0; i < hash_table_size; i++)
+	for(uint16_t i = 0; i < hash_table_size; i++)
 	{
 		hash_table[i] = new Hash_table_entry[bucket_size];
 		memset(hash_table[i], 0, sizeof(hash_table[0][0]) * bucket_size);
@@ -33,11 +33,11 @@ SILT::Log_store<Value>::Log_store(void)
 template<typename Value>
 SILT::Log_store<Value>::~Log_store(void)
 {
-	for(uint32_t i = 0; i < hash_table_size; i++)
+	for(uint16_t i = 0; i < hash_table_size; i++)
 		delete[] hash_table[i];
 	delete[] hash_table;
 	fclose(log_store_file);
-	if(std::remove(id) != 0)
+	if(std::remove(file_name) != 0)
 	{
 		fprintf(stderr, "remove error\n");
 		exit(1);
@@ -105,18 +105,26 @@ bool SILT::Log_store<Value>::insert(const SILT_key& key, const Value& value)
 
 	h1 = h1 | operation_bit | valid_bit;
 	h2 = h2 | operation_bit | valid_bit;
-	uint32_t log_file_offset = file_size;
+	uint16_t log_file_offset = file_size;
 	uint16_t tmp_h1;
 	uint16_t tmp_h2;
-	uint32_t tmp_log_file_offset;
+	uint16_t tmp_log_file_offset;
 
 	srand(time(nullptr));
-	uint8_t random = rand() % 2;
-	if(random) // zamień h1 z h2
+	bucket_index = rand(); /* powtórne wykorzystanie zmiennej bucket_index, tym
+	razem wybieramy, do którego pełnego kubełka wrzucamy, dalej wypchnięte
+	klucze odsyłamy do ich alternatywnego kubełka (zapamiętujemy go w h2) */
+	#ifdef DEBUG_MODE
+	bool swapped = false;
+	#endif // DEBUG_MODE
+	if(bucket_index & 0x1) // zamień h1 z h2
 	{
 		tmp_h1 = h1;
 		h1 = h2;
 		h2 = tmp_h1;
+		#ifdef DEBUG_MODE
+		swapped = true;
+		#endif // DEBUG_MODE
 	}
 
 	uint8_t undo[maximum_number_of_displacements];
@@ -128,7 +136,17 @@ bool SILT::Log_store<Value>::insert(const SILT_key& key, const Value& value)
 			append_entry_to_log_store_file(key, value);
 			return true;
 		}
-		undo[maximum_number_of_displacements - i - 1] = rand() % 4;
+		/* rand() zwraca liczby w minimalnym zakresie od 0 do 32767 = 2^15 - 1;
+		używamy więc po 2 najniższe bity jako numer kubełka przez 4 itereracje
+		(po każdym obrocie przesuwamy zmieną o dwa bity w prawo), używając
+		w sumie ośmiu bitów i co czwartą iterację pętli losujemy od nowa wartość
+		dla zmiennej bucket_index, która określa pozycję w kubełku, do której
+		chcemy włożyć wypchnięty wcześniej element; zatem wywołamy co najwyżej
+		maximum_number_of_displacements / 4 + 1 razy funkcję rand() */
+		if((i & 0x3) == 0)
+			bucket_index = rand();
+		undo[maximum_number_of_displacements - i - 1] = bucket_index & 0x3;
+		bucket_index >>= 2;
         tmp_h1 = h2;
         tmp_h2 = hash_table[h2 >> 2]
         [undo[maximum_number_of_displacements - i - 1]].tag;
@@ -145,7 +163,7 @@ bool SILT::Log_store<Value>::insert(const SILT_key& key, const Value& value)
 
 	DEBUG(fprintf(stderr, "Przepełnienie, cofanie wstawienia\n"));
 
-	// wstawiamy do kubełka h1
+	// odtwarzanie tablicy: wstawiamy do kubełka h1
 	for(uint8_t i = 0; i < maximum_number_of_displacements; i++)
 	{
 		tmp_h1 = hash_table[h1 >> 2][undo[i]].tag;
@@ -158,9 +176,9 @@ bool SILT::Log_store<Value>::insert(const SILT_key& key, const Value& value)
 		log_file_offset = tmp_log_file_offset;
 	}
 
-	assert(random ? (h2 & 0xFFFC) == (key.h4 & h1_mask)
+	assert(swapped ? (h2 & 0xFFFC) == (key.h4 & h1_mask)
 	: (h1 & 0xFFFC) == (key.h4 & h1_mask));
-	assert(random ? (h1 & 0xFFFC) == ((key.h4 & h2_mask) >> 16)
+	assert(swapped ? (h1 & 0xFFFC) == ((key.h4 & h2_mask) >> 16)
 	: (h2 & 0xFFFC) == ((key.h4 & h2_mask) >> 16));
 	assert(log_file_offset == file_size);
 	// jeśli któraś asercja się wywali, tzn., że źle odtwarzano stan tablicy
@@ -186,9 +204,9 @@ uint8_t* bucket_index) const
 
 template<typename Value>
 bool SILT::Log_store<Value>::check_key_matching(const SILT_key& key,
-uint32_t log_file_offset) const
+uint16_t log_file_offset) const
 {
-	fseek(log_store_file, log_file_offset * log_entry_size, SEEK_SET);
+	fseek(log_store_file, log_file_offset * log_file_entry_size, SEEK_SET);
 	SILT_key found_key;
 	if(fread((void*) &found_key, sizeof(SILT_key), 1, log_store_file)
 	!= 1)
@@ -201,16 +219,16 @@ uint32_t log_file_offset) const
 
 template<typename Value>
 void SILT::Log_store<Value>::modify_entry_in_log_store_file(const SILT_key& key,
-const Value& value, uint32_t log_file_offset)
+const Value& value, uint16_t log_file_offset)
 {
-	fseek(log_store_file, log_file_offset * log_entry_size, SEEK_SET);
+	fseek(log_store_file, log_file_offset * log_file_entry_size, SEEK_SET);
 	fwrite((void*) &key, sizeof(SILT_key), 1, log_store_file);
 	fwrite((void*) &value, sizeof(Value), 1, log_store_file);
 }
 
 template<typename Value>
 bool SILT::Log_store<Value>::insert_into_bucket(uint16_t h_index,
-uint16_t h_tag, uint32_t log_file_offset)
+uint16_t h_tag, uint16_t log_file_offset)
 {
 	for(uint8_t i = 0; i < bucket_size; i++)
 	{
@@ -228,7 +246,7 @@ template<typename Value>
 void SILT::Log_store<Value>::append_entry_to_log_store_file(const SILT_key& key,
 const Value& value)
 {
-	fseek(log_store_file, file_size * log_entry_size, SEEK_SET);
+	fseek(log_store_file, file_size * log_file_entry_size, SEEK_SET);
 	fwrite((void*) &key, sizeof(SILT_key), 1, log_store_file);
 	fwrite((void*) &value, sizeof(Value), 1, log_store_file);
 	file_size++;
@@ -269,7 +287,7 @@ const
 	uint16_t h2 = (key.h4 & h2_mask) >> 16;
 
 	uint8_t bucket_index;
-	uint32_t log_file_offset;
+	uint16_t log_file_offset;
 	if(look_up(h1, h2, &bucket_index)) // kubełek 1
 	{
 		if((hash_table[h1 >> 2][bucket_index].tag & operation_bit) == 0)

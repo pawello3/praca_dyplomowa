@@ -8,12 +8,12 @@
 #include <cinttypes>
 
 template<typename Value>
-uint32_t SILT::Hash_store<Value>::first_free_id = 0;
+uint8_t SILT::Hash_store<Value>::first_free_id = 0;
 
 template<typename Value>
 SILT::Hash_store<Value>::Hash_store(SILT::Log_store<Value>* log_store)
-	:log_entry_size(log_store->log_entry_size)
-	,hash_store_file(fopen(next_id(), "wb+"))
+	:log_file_entry_size(log_store->log_file_entry_size)
+	,hash_store_file(fopen(next_name(), "wb+"))
 {
 	assert(log_store != nullptr);
 	if(hash_store_file == nullptr)
@@ -25,7 +25,7 @@ SILT::Hash_store<Value>::Hash_store(SILT::Log_store<Value>* log_store)
 	SILT_key key;
 	Value value;
 	fseek(hash_store_file, 0, SEEK_SET);
-	for(uint32_t i = 0; i < hash_table_size; i++)
+	for(uint16_t i = 0; i < hash_table_size; i++)
 	{
 		hash_table[i] = new uint16_t[bucket_size];
 		for(uint8_t j = 0; j < bucket_size; j++)
@@ -34,7 +34,7 @@ SILT::Hash_store<Value>::Hash_store(SILT::Log_store<Value>* log_store)
 			if((hash_table[i][j] & valid_bit) != 0)
 			{
 				fseek(log_store->log_store_file,
-				log_store->hash_table[i][j].offset * log_store->log_entry_size,
+				log_store->hash_table[i][j].offset * log_file_entry_size,
 				SEEK_SET);
 				if(fread((void*) &key, sizeof(SILT_key), 1,
 				log_store->log_store_file) != 1)
@@ -63,11 +63,10 @@ SILT::Hash_store<Value>::Hash_store(SILT::Log_store<Value>* log_store)
 template<typename Value>
 SILT::Hash_store<Value>::~Hash_store(void)
 {
-	for(uint32_t i = 0; i < hash_table_size; i++)
-		delete[] hash_table[i];
-	delete[] hash_table;
+	assert(!hash_table); /* powinna zostać usunięta podczas sortowania, czyli
+	nie posortowano tego hash stora */
 	fclose(hash_store_file);
-	if(std::remove(id) != 0)
+	if(std::remove(file_name) != 0)
 	{
 		fprintf(stderr, "remove error\n");
 		exit(1);
@@ -75,9 +74,18 @@ SILT::Hash_store<Value>::~Hash_store(void)
 }
 
 template<typename Value>
+char* SILT::Hash_store<Value>::next_name(void)
+{
+	sprintf(file_name, "Hash_store_%" PRIu32 ".dat", first_free_id);
+	first_free_id = (first_free_id + 1) % maximum_number_of_hash_stores;
+	return file_name;
+}
+
+template<typename Value>
 Value* SILT::Hash_store<Value>::get_value(const SILT_key& key, bool* reason)
 const
 {
+	assert(hash_table); // czy już nie została posortowana
 	*reason = false;
 	uint16_t h1 = key.h4 & h1_mask;
 	uint16_t h2 = (key.h4 & h2_mask) >> 16;
@@ -92,7 +100,7 @@ const
 				return nullptr; // wpis usuwający
 			}
 			fseek(hash_store_file, ((h1 >> 2) * bucket_size + i)
-			* log_entry_size, SEEK_SET);
+			* log_file_entry_size, SEEK_SET);
 			SILT_key found_key;
 			if(fread((void*) &found_key, sizeof(SILT_key), 1, hash_store_file)
 			!= 1)
@@ -124,7 +132,7 @@ const
 				return nullptr; // wpis usuwający
 			}
 			fseek(hash_store_file, ((h2 >> 2) * bucket_size + i)
-			* log_entry_size, SEEK_SET);
+			* log_file_entry_size, SEEK_SET);
 			SILT_key found_key;
 			if(fread((void*) &found_key, sizeof(SILT_key), 1, hash_store_file)
 			!= 1)
@@ -150,11 +158,139 @@ const
 }
 
 template<typename Value>
-char* SILT::Hash_store<Value>::next_id(void)
+void SILT::Hash_store<Value>::sort()
 {
-	sprintf(id, "Hash_store_%" PRIu32 ".dat", first_free_id);
-	first_free_id++;
-	return id;
+	/* deklaracja i wypełnienie wartościami z pliku (zamiast value wpisujemy
+	przesunięcie w pliku hash_store_file - numer pary klucz-wartość)
+	tablicy sorted_table typu Sorted_table_entry */
+	uint32_t sorted_table_size = hash_table_size * bucket_size;
+	Sorted_table_entry* sorted_table
+	= new Sorted_table_entry[sorted_table_size];
+	sorted_table_size = 0;
+	for(uint16_t i = 0; i < hash_table_size; i++)
+	{
+		for(uint8_t j = 0; j < bucket_size; j++)
+		{
+			if((hash_table[i][j] & (valid_bit)) != 0)
+			{
+				fseek(hash_store_file, (i * bucket_size + j)
+				* log_file_entry_size, SEEK_SET);
+				if(fread((void*) &sorted_table[sorted_table_size].key,
+				sizeof(SILT_key), 1, hash_store_file) != 1)
+				{
+					fprintf(stderr, "fread error\n");
+					exit(1);
+				}
+				sorted_table[sorted_table_size].offset = i * bucket_size + j;
+				sorted_table[sorted_table_size].operation = (hash_table[i][j]
+				& operation_bit) ? 0x1 : 0x0;
+				sorted_table_size++;
+			}
+		}
+	}
+
+	// usunięcie tablicy z haszowaniem
+	for(uint16_t i = 0; i < hash_table_size; i++)
+		delete[] hash_table[i];
+	delete[] hash_table;
+	hash_table = nullptr;
+
+	// deklaracja pomocniczych tablic do sortowania kubełkowego
+	Sorted_table_entry* buckets_table
+	= new Sorted_table_entry[sorted_table_size];
+	uint16_t* count = new uint16_t[hash_table_size * bucket_size];
+
+	// sortowanie pozycyjne tablicy sorted_table
+    radix_sort(buckets_table, sorted_table, sorted_table_size, count);
+
+	// deklaracja i otwarcie nowego pliku sorted_hash_store_file
+	char buffer[32];
+	sprintf(buffer, "Sorted_h%s", file_name + 1);
+	FILE* sorted_hash_store_file = fopen(buffer, "wb+");
+
+	// zapisanie sorted_table do nowego pliku i usunięcie jej z pamięci
+	Value value;
+	fseek(sorted_hash_store_file, 0, SEEK_SET);
+	for(uint32_t i = 0; i < sorted_table_size; i++)
+	{
+		fseek(hash_store_file, sorted_table[i].offset * log_file_entry_size
+		+ sizeof(Value), SEEK_SET);
+		if(fread((void*) &value, sizeof(Value), 1, hash_store_file) != 1)
+		{
+			fprintf(stderr, "fread error\n");
+			exit(1);
+		}
+		fwrite((void*) &sorted_table[i].key, sizeof(SILT_key), 1,
+		sorted_hash_store_file);
+		fwrite((void*) &value, sizeof(Value), 1, sorted_hash_store_file);
+		fwrite((void*) &sorted_table[i].operation, sizeof(uint8_t), 1,
+		sorted_hash_store_file);
+	}
+	delete[] sorted_table;
+
+	// usunięcie starego pliku
+	fclose(hash_store_file);
+	if(std::remove(file_name) != 0)
+	{
+		fprintf(stderr, "remove error\n");
+		exit(1);
+	}
+
+	// podmiana wskaźnika hash_store_file i nazwy pliku
+	hash_store_file = sorted_hash_store_file;
+	strcpy(file_name, buffer);
+}
+
+template<typename Value>
+void SILT::Hash_store<Value>::radix_sort(Sorted_table_entry* buckets_table,
+Sorted_table_entry* sorted_table, uint32_t sorted_table_size, uint16_t* count)
+{
+	for(uint8_t i = 0; i < 10; i++)
+	{
+		memset(count, 0, (hash_table_size * bucket_size) << 1);
+		counting_sort(buckets_table, sorted_table, sorted_table_size,
+		10 - i - 1, count);
+		memcpy(sorted_table, buckets_table, sorted_table_size);
+	}
+}
+
+template<typename Value>
+void SILT::Hash_store<Value>::counting_sort(Sorted_table_entry* buckets_table,
+Sorted_table_entry* sorted_table, uint32_t sorted_table_size, uint8_t fragment,
+uint16_t* count)
+{
+	uint16_t key;
+	/*for(uint32_t i = 0; i < sorted_table_size; i++)
+	{
+		memcpy(&key, ((uint8_t*) (sorted_table + i)) + (fragment << 1), 2);
+		PRINT_UINT_16(key);
+		printf("\n");
+	}
+	printf("KONIEC\n\n");*/
+	for(uint32_t i = 0; i < sorted_table_size; i++)
+	{
+		memcpy(&key, ((uint8_t*) (sorted_table + i)) + (fragment << 1), 2);
+		count[key]++;
+	}
+	uint16_t sum = 0, old_count;
+	for(uint32_t i = 0; i < hash_table_size * bucket_size; i++)
+	{
+		old_count = count[i];
+		count[i] = sum;
+		sum += old_count;
+	}
+	for(uint32_t i = 0; i < sorted_table_size; i++)
+	{
+		memcpy(&key, ((uint8_t*) (sorted_table + i)) + (fragment << 1), 2);
+		buckets_table[count[key]] = sorted_table[i];
+		count[key]++;
+	}
+	/*for(uint32_t i = 0; i < sorted_table_size; i++)
+	{
+		memcpy(&key, ((uint8_t*) (buckets_table + i)) + (fragment << 1), 2);
+		PRINT_UINT_16(key);
+		printf("\n");
+	}*/
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -174,9 +310,7 @@ SILT::Hash_store_list_node<Value>::~Hash_store_list_node<Value>(void)
 }
 
 template<typename Value>
-SILT::Hash_store<Value>* SILT::Hash_store_list_node<Value>
-::get_data(void)
-const
+SILT::Hash_store<Value>* SILT::Hash_store_list_node<Value>::get_data(void) const
 {
 	return data;
 }
@@ -210,15 +344,14 @@ SILT::Hash_store_list<Value>::~Hash_store_list(void)
 }
 
 template<typename Value>
-SILT::Hash_store_list_node<Value>* SILT::Hash_store_list<Value>
-::get_head(void) const
+SILT::Hash_store_list_node<Value>* SILT::Hash_store_list<Value>::get_head(void)
+const
 {
 	return head;
 }
 
 template<typename Value>
-void SILT::Hash_store_list<Value>
-::prepend(Hash_store_list<Value>* node)
+void SILT::Hash_store_list<Value>::prepend(Hash_store_list<Value>* node)
 {
 	if(head == nullptr)
 	{
@@ -237,8 +370,7 @@ void SILT::Hash_store_list<Value>
 }
 
 template<typename Value>
-void SILT::Hash_store_list<Value>
-::remove(Hash_store_list<Value>* node)
+void SILT::Hash_store_list<Value>::remove(Hash_store_list<Value>* node)
 {
 	assert(size > 0);
 	if(node->previous == node->next)
@@ -256,7 +388,7 @@ void SILT::Hash_store_list<Value>
 }
 
 template<typename Value>
-uint32_t SILT::Hash_store_list<Value>::get_size(void) const
+uint8_t SILT::Hash_store_list<Value>::get_size(void) const
 {
 	return size;
 }

@@ -24,10 +24,14 @@ void SILT::SHA_1(Key key, SILT::SILT_key* returned_key)
 	uint32_t key_size = sizeof(Key);
 	uint32_t number_of_bits = key_size << 3;
 	number_of_bits++; // dodawanie '1' na koniec
-	if(number_of_bits % 512 < 448)
+	if((number_of_bits & 0x1FF) < 448)
+		number_of_bits += 448 - (number_of_bits & 0x1FF);
+	else if((number_of_bits & 0x1FF) > 448)
+		number_of_bits += 512 - (number_of_bits & 0x1FF) + 448;
+	/*if(number_of_bits % 512 < 448)
 		number_of_bits += 448 - number_of_bits % 512;
 	else if(number_of_bits % 512 > 448)
-		number_of_bits += 512 - number_of_bits % 512 + 448;
+		number_of_bits += 512 - number_of_bits % 512 + 448;*/
 	number_of_bits += 64;
 	assert(number_of_bits % 512 == 0);
 

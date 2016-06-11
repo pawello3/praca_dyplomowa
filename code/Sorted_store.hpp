@@ -20,7 +20,8 @@ namespace SILT
 			FILE* const sorted_store_file;
 
 		public:
-			Sorted_store(Hash_store_list<Value>* hash_store_list);
+			Sorted_store(Hash_store_list<Value>* hash_store_list,
+			Sorted_store<Value>* old_sorted_store);
 			~Sorted_store(void);
 
 			Value* get_value(const SILT_key& key) const;

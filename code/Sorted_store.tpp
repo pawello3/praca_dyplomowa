@@ -7,7 +7,7 @@
 
 template<typename Value>
 SILT::Sorted_store<Value>::Sorted_store(SILT::Hash_store_list<Value>*
-hash_store_list)
+hash_store_list, Sorted_store<Value>* old_sorted_store)
 {
 	assert(false); // TODO
 }
