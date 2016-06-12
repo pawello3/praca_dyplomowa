@@ -8,7 +8,7 @@
 #include "Merge_heap.hpp"
 
 SILT::Merge_heap::Merge_heap(uint8_t size)
-	:heap_array(new Merge_heap_element[size])
+	:heap_array(new Sorted_hash_store_entry[size])
 	,array_size(size)
 	,heap_size(0)
 {
@@ -20,7 +20,7 @@ SILT::Merge_heap::~Merge_heap(void)
 	delete[] heap_array;
 }
 
-void SILT::Merge_heap::insert(Merge_heap_element& element)
+void SILT::Merge_heap::insert(const Sorted_hash_store_entry& element)
 {
 	assert(heap_size < array_size);
 	heap_array[heap_size] = element;
@@ -28,7 +28,12 @@ void SILT::Merge_heap::insert(Merge_heap_element& element)
 	heap_size++;
 }
 
-SILT::Merge_heap_element& SILT::Merge_heap::get_top(void)
+uint8_t SILT::Merge_heap::get_size(void)
+{
+	return heap_size;
+}
+
+SILT::Sorted_hash_store_entry& SILT::Merge_heap::get_top(void)
 {
 	heap_size--;
 	swap(0, heap_size);
@@ -36,20 +41,21 @@ SILT::Merge_heap_element& SILT::Merge_heap::get_top(void)
 	return heap_array[heap_size];
 }
 
-bool SILT::Merge_heap::remove_duplicate(Merge_heap_element& element,
-uint8_t* list_number)
+bool SILT::Merge_heap::remove_duplicate(Sorted_hash_store_entry& element,
+uint8_t* hash_store_number)
 {
 	for(uint8_t i = 0; i < heap_size; i++)
 	{
-		if(heap_array[i].entry.key_16 == element.entry.key_16)
+		if(heap_array[i].key == element.key)
 		{
-			*list_number = heap_array[i].list_number;
+			*hash_store_number
+			= heap_array[i].hash_store_number_and_operation >> 1;
 			swap(i, heap_size - 1);
 			heap_size--;
-			build_heap();
 			return true;
 		}
 	}
+	build_heap();
 	return false;
 }
 
@@ -63,14 +69,14 @@ uint8_t SILT::Merge_heap::right_child(uint8_t position)
 	return (position << 1) + 2;
 }
 
-uint8_t SILT::Merge_heap::parent(unsigned int position)
+int16_t SILT::Merge_heap::parent(int16_t position)
 {
 	return (position + 1) / 2 - 1;
 }
 
 void SILT::Merge_heap::swap(uint8_t position1, uint8_t position2)
 {
-	Merge_heap_element temporary = heap_array[position1];
+	Sorted_hash_store_entry temporary = heap_array[position1];
 	heap_array[position1] = heap_array[position2];
 	heap_array[position2] = temporary;
 }

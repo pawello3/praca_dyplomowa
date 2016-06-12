@@ -8,7 +8,7 @@
 template<typename Key, typename Value>
 SILT::Small_Index_Large_Table<Key, Value>::Small_Index_Large_Table(void)
 	:log_store(new Log_store<Value>())
-	,hash_store_list(nullptr)
+	,hash_stores_array(new Hash_store<Value>*[maximum_number_of_hash_stores])
 	,sorted_store(nullptr)
 {
 }
@@ -17,7 +17,8 @@ template<typename Key, typename Value>
 SILT::Small_Index_Large_Table<Key, Value>::~Small_Index_Large_Table(void)
 {
 	delete log_store;
-	delete hash_store_list;
+	//delete hash_store_list;
+	delete[] hash_stores_array;
 	delete sorted_store;
 }
 
@@ -26,6 +27,7 @@ void SILT::Small_Index_Large_Table<Key, Value>::insert(const Key& key,
 const Value& value)
 {
 	assert(false); // TODO
+	// pamiętać o resecie, gdy hash store'y będą scalane z sorted storem
 }
 
 template<typename Key, typename Value>
@@ -48,13 +50,19 @@ const
 		return returned_value;
 
 	// sprawdzenie w Hash store'ach
-	Hash_store_list_node<Value>* node = hash_store_list->get_head();
+	/*Hash_store_list_node<Value>* node = hash_store_list->get_head();
 	while(node != nullptr)
 	{
 		returned_value = node->get_data()->get_value(key, &reason);
 		if(returned_value != nullptr || reason == true)
 			return returned_value;
 		node = node->get_next();
+	}*/
+	for(uint8_t i = 0; i < maximum_number_of_hash_stores; i++)
+	{
+		returned_value = hash_stores_array[i]->get_value(key, &reason);
+		if(returned_value != nullptr || reason == true)
+			return returned_value;
 	}
 
 	// sprawdzenie w Sorted store'rze

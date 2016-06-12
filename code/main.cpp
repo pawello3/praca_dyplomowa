@@ -38,15 +38,26 @@ int main()
 		printf("%lf\n", *d);
 	else
 		printf("Key not found\n");
-	SILT::Hash_store<double> hash_store = SILT::Hash_store<double>(&log_store);
+	/*SILT::Hash_store<double> hash_store = SILT::Hash_store<double>(&log_store);
 	d = hash_store.get_value(key, &reason);
 	if(d != nullptr)
 		printf("%lf", *d);
 	else
 		printf("Key not found\n");
-	hash_store.sort();
-	//SILT::Sorted_store<double> sorted_store
-	//= SILT::Sorted_store<double>(hash_store_list);
+	hash_store.sort();*/
+
+	SILT::Hash_store<double>* hash_stores_array[15];
+	for(uint8_t i = 0; i < 15; i++)
+	{
+		hash_stores_array[i] = new SILT::Hash_store<double>(&log_store);
+		hash_stores_array[i]->sort();
+	}
+
+	SILT::Sorted_store<double> sorted_store
+	= SILT::Sorted_store<double>(hash_stores_array, nullptr);
+
+	for(uint8_t i = 0; i < 15; i++)
+		delete hash_stores_array[i];
 	//SILT::Small_Index_Large_Table<double> silt
 	//= SILT::Small_Index_Large_Table<double>();
 	return 0;

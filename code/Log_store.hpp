@@ -47,7 +47,7 @@ namespace SILT
 			const uint8_t log_file_entry_size;
 			char file_name[32];
 			FILE* const log_store_file;
-			uint16_t file_size;
+			uint16_t file_size; // liczba wpisów w pliku
 
 		public:
 			Log_store(void);
