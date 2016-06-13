@@ -21,6 +21,7 @@ Sorted_store<Value>* old_sorted_store)
 	}
 	strcpy(file_name, "Sorted_store.dat");
 	merge(hash_stores_array, old_sorted_store);
+	//build_trie_indexing();
 }
 
 template<typename Value>
@@ -92,8 +93,8 @@ Sorted_hash_store_entry* array, uint32_t* first_unread_position, uint8_t number)
 {
 	if(number == maximum_number_of_hash_stores)
 	{
+		// nie przeczytano całego pliku
 		if(first_unread_position[number] < old_sorted_store->file_size)
-		/* nie przeczytano całego pliku */
 		{
 			fseek(old_sorted_store->sorted_store_file,
 			first_unread_position[number] * sorted_store_entry_size, SEEK_SET);
@@ -110,8 +111,8 @@ Sorted_hash_store_entry* array, uint32_t* first_unread_position, uint8_t number)
 	}
 	else
 	{
+		// nie przeczytano całego pliku
 		if(first_unread_position[number] < hash_stores_array[number]->file_size)
-		/* nie przeczytano całego pliku */
 		{
 			fseek(hash_stores_array[number]->hash_store_file,
 			first_unread_position[number] * sorted_hash_store_entry_size,
@@ -149,8 +150,9 @@ Sorted_hash_store_entry* returned_entry)
 	*returned_entry = entry;
 	uint8_t number = entry.hash_store_number_and_operation >> 1;
 	Value value;
-	if(entry.hash_store_number_and_operation & entry_operation_bit)
+
 	// operacja dodawania
+	if(entry.hash_store_number_and_operation & entry_operation_bit)
 	{
 		if(number == maximum_number_of_hash_stores) // klucz z Sorted store
 		{
@@ -182,6 +184,12 @@ Sorted_hash_store_entry* returned_entry)
 		file_size++;
 	}
 	return number;
+}
+
+template<typename Value>
+void SILT::Sorted_store<Value>::build_trie_indexing(void)
+{
+	assert(false); // TODO
 }
 
 template<typename Value>

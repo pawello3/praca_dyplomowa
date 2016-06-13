@@ -117,7 +117,7 @@ bool SILT::Log_store<Value>::insert(const SILT_key& key, const Value& value)
 	#ifdef DEBUG_MODE
 	bool swapped = false;
 	#endif // DEBUG_MODE
-	if(bucket_index & 0x1) // zamień h1 z h2
+	if(bucket_index & 0x1) // zamieiamy h1 z h2
 	{
 		tmp_h1 = h1;
 		h1 = h2;
@@ -176,12 +176,12 @@ bool SILT::Log_store<Value>::insert(const SILT_key& key, const Value& value)
 		log_file_offset = tmp_log_file_offset;
 	}
 
+	// jeśli któraś asercja się wywali, tzn., że źle odtwarzano stan tablicy
 	assert(swapped ? (h2 & 0xFFFC) == (key.h4 & h1_mask)
 	: (h1 & 0xFFFC) == (key.h4 & h1_mask));
 	assert(swapped ? (h1 & 0xFFFC) == ((key.h4 & h2_mask) >> 16)
 	: (h2 & 0xFFFC) == ((key.h4 & h2_mask) >> 16));
 	assert(log_file_offset == file_size);
-	// jeśli któraś asercja się wywali, tzn., że źle odtwarzano stan tablicy
 	return false;
 }
 
@@ -293,7 +293,7 @@ const
 		if((hash_table[h1 >> 2][bucket_index].tag & operation_bit) == 0)
 		{
 			*reason = true;
-			return nullptr; // wpis usuwający
+			return nullptr; // operacja usuwania
 		}
 		log_file_offset = hash_table[h1 >> 2][bucket_index].offset;
 	}
@@ -302,7 +302,7 @@ const
 		if((hash_table[h2 >> 2][bucket_index].tag & operation_bit) == 0)
 		{
 			*reason = true;
-			return nullptr; // wpis usuwający
+			return nullptr; // operacja usuwania
 		}
 		log_file_offset = hash_table[h2 >> 2][bucket_index].offset;
 	}

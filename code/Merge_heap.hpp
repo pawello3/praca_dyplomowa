@@ -35,9 +35,9 @@ namespace SILT
 			kopca, a wartość zmiennej hash_store_number jest nie zdefiniowana */
 
 		private:
-			uint8_t left_child(uint8_t position);
-			uint8_t right_child(uint8_t position);
-			int16_t parent(int16_t position);
+			static uint8_t left_child(uint8_t position);
+			static uint8_t right_child(uint8_t position);
+			static int16_t parent(int16_t position);
 			void swap(uint8_t position1, uint8_t position2);
 			void move_up(uint8_t position);
 			void move_down(uint8_t position);

@@ -12,6 +12,19 @@ int main()
 	SILT::Log_store<double> log_store = SILT::Log_store<double>();
 	SILT::SILT_key key;
 	SILT::SHA_1(6452452, &key);
+	/*PRINT_BYTES_32(ntohl(key.h0));
+	PRINT_BYTES_32(ntohl(key.h1));
+	PRINT_BYTES_32(ntohl(key.h2));
+	PRINT_BYTES_32(ntohl(key.h3));
+	PRINT_BYTES_32(ntohl(key.h4));
+	printf("\n");
+	for(uint8_t i = 0; i < 160; i++)
+	{
+		printf("%" PRIu8, key[i] ? 0x01 : 0x00);
+		if(i % 32 == 31)
+			printf("\n");
+	}
+	printf("\n\n");*/
 	log_store.insert(key, 7.92);
 	SILT::SHA_1(7, &key);
 	log_store.insert(key, 7.93);

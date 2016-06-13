@@ -11,6 +11,7 @@
 #include "SILT_key.hpp"
 #include "Hash_store.hpp"
 #include "Merge_heap.hpp"
+#include "Trie.hpp"
 
 namespace SILT
 {
@@ -23,6 +24,7 @@ namespace SILT
 			uint32_t file_size; // liczba wpisów w pliku
 			const uint8_t sorted_hash_store_entry_size;
 			const uint8_t sorted_store_entry_size;
+			Trie* trie_buckets; // 2^16 kubełków
 
 		public:
 			Sorted_store(Hash_store<Value>** hash_stores_array,
@@ -42,6 +44,7 @@ namespace SILT
 			hash_stores_array, Sorted_store<Value>* old_sorted_store,
 			Merge_heap* heap, uint32_t* first_unread_position,
 			Sorted_hash_store_entry* returned_entry);
+			void build_trie_indexing(void);
 	};
 }
 
