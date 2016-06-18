@@ -21,12 +21,14 @@ Sorted_store<Value>* old_sorted_store)
 	}
 	strcpy(file_name, "Sorted_store.dat");
 	merge(hash_stores_array, old_sorted_store);
-	//build_trie_indexing();
+	build_trie_indexing();
 }
 
 template<typename Value>
 SILT::Sorted_store<Value>::~Sorted_store(void)
 {
+	trie_buckets[0].~Trie(); // TODO (usuwanie wszystkich kubełków)
+	operator delete[](static_cast<void*>(trie_buckets));
 	fclose(sorted_store_file);
 	if(std::remove(file_name) != 0)
 	{
@@ -71,7 +73,6 @@ Sorted_store<Value>* old_sorted_store)
 		DEBUG(printf("\n"));*/
 		number = get_top_of_heap_and_append_to_file(hash_stores_array,
 		old_sorted_store, heap, first_unread_position, &entry);
-
 
 		insert_into_heap(hash_stores_array, old_sorted_store, heap, array,
 		first_unread_position, number);
@@ -189,11 +190,32 @@ Sorted_hash_store_entry* returned_entry)
 template<typename Value>
 void SILT::Sorted_store<Value>::build_trie_indexing(void)
 {
-	assert(false); // TODO
+	trie_buckets = static_cast<Trie<Value>*> (operator new[]
+	(1 * sizeof(Trie<Value>)));
+	new(&trie_buckets[0]) Trie<Value>(sorted_store_file, file_size);
+	// TODO (dodanie wielu kubełków)
 }
 
 template<typename Value>
 Value* SILT::Sorted_store<Value>::get_value(const SILT_key& key) const
 {
-	assert(false); // TODO
+	assert(trie_buckets[0].get_offset(key) < file_size);
+	fseek(sorted_store_file, trie_buckets[0].get_offset(key)
+	* sorted_store_entry_size, SEEK_SET);
+	SILT_key key_to_match;
+	if(fread((void*) &key_to_match, sizeof(SILT_key), 1, sorted_store_file)
+	!= 1)
+	{
+		fprintf(stderr, "fread error\n");
+		exit(1);
+	}
+	if(key != key_to_match)
+		return nullptr;
+	Value* returned_value = new Value();
+	if(fread((void*) returned_value, sizeof(Value), 1, sorted_store_file) != 1)
+	{
+		fprintf(stderr, "fread error\n");
+		exit(1);
+	}
+	return returned_value;
 }

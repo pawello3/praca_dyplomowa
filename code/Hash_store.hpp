@@ -90,50 +90,6 @@ namespace SILT
 			Sorted_table_entry* sorted_table, uint32_t sorted_table_size,
 			uint8_t fragment, uint16_t* count);
 	};
-
-/*
-////////////////////////////////////////////////////////////////////////////////
-
-	template<typename Value>
-	class Hash_store_list;
-
-	template<typename Value>
-	class Hash_store_list_node final
-	{
-		friend class Hash_store_list<Value>;
-
-		private:
-			Hash_store<Value>* data;
-			Hash_store_list_node<Value>* previous;
-			Hash_store_list_node<Value>* next;
-
-		public:
-			Hash_store_list_node(Hash_store<Value>* data);
-			~Hash_store_list_node(void);
-
-			Hash_store<Value>* get_data(void) const;
-			Hash_store_list_node<Value>* get_next(void) const;
-	};
-
-////////////////////////////////////////////////////////////////////////////////
-
-	template<typename Value>
-	class Hash_store_list final
-	{
-		private:
-			Hash_store_list_node<Value>* head;
-			uint8_t size;
-
-		public:
-			Hash_store_list(void);
-			~Hash_store_list(void);
-
-			Hash_store_list_node<Value>* get_head(void) const;
-			void prepend(Hash_store_list<Value>* node);
-			void remove(Hash_store_list<Value>* node);
-			uint8_t get_size(void) const;
-	};
-*/
 }
 
 #include "Hash_store.tpp" // implementacja szablonu

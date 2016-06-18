@@ -26,9 +26,9 @@ namespace SILT
 	{
 		private:
 			Log_store<Value>* log_store;
-			//Hash_store_list<Value>* hash_store_list;
 			Hash_store<Value>** hash_stores_array;
 			Sorted_store<Value>* sorted_store;
+			uint8_t number_of_hash_stores;
 
 		public:
 			Small_Index_Large_Table(void);

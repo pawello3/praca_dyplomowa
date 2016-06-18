@@ -37,8 +37,8 @@
 		<Unit filename="Small_Index_Large_Table.tpp" />
 		<Unit filename="Sorted_store.hpp" />
 		<Unit filename="Sorted_store.tpp" />
-		<Unit filename="Trie.cpp" />
 		<Unit filename="Trie.hpp" />
+		<Unit filename="Trie.tpp" />
 		<Unit filename="debug.hpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>

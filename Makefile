@@ -3,9 +3,9 @@ ERRORSFLAGS=-Wall -Wextra -Werror -O2
 STANDARDFLAGS=-std=c++11
 LIBRARIES=-lm
 CODE_DIRECTORY=code
-_DEPENDENCIES=debug.hpp SILT_key.hpp SILT_key.tpp Small_Index_Large_Table.hpp Small_Index_Large_Table.tpp Log_store.hpp Log_store.tpp Hash_store.hpp Hash_store.tpp Merge_heap.hpp Sorted_store.hpp Sorted_store.tpp Trie.hpp
+_DEPENDENCIES=debug.hpp SILT_key.hpp SILT_key.tpp Small_Index_Large_Table.hpp Small_Index_Large_Table.tpp Log_store.hpp Log_store.tpp Hash_store.hpp Hash_store.tpp Merge_heap.hpp Sorted_store.hpp Sorted_store.tpp Trie.hpp Trie.tpp
 DEPENDENCIES=$(patsubst %,$(CODE_DIRECTORY)/%,$(_DEPENDENCIES))
-_SOURCES=main.cpp Merge_heap.cpp Trie.cpp
+_SOURCES=main.cpp Merge_heap.cpp
 SOURCES=$(patsubst %,$(CODE_DIRECTORY)/%,$(_SOURCES))
 OBJECTS_DIRECTORY=objects
 _OBJECTS=$(_SOURCES:.cpp=.o)

@@ -25,14 +25,14 @@ namespace SILT
 		uint32_t h4;
 
 		SILT_key& operator=(const SILT_key_16& rhs);
-		uint8_t operator[](const uint8_t index);
+		uint8_t operator[](const uint8_t index) const;
 		friend bool operator==(const SILT_key& lhs, const SILT_key& rhs);
 		friend bool operator!=(const SILT_key& lhs, const SILT_key& rhs);
 		friend bool operator<(const SILT_key& lhs, const SILT_key& rhs);
 		friend bool operator>(const SILT_key& lhs, const SILT_key& rhs);
 	};
 
-	inline uint8_t SILT_key::operator[](const uint8_t index)
+	inline uint8_t SILT_key::operator[](const uint8_t index) const
 	{
 		assert(index < 160);
 		if(index < 96)

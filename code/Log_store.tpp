@@ -176,7 +176,8 @@ bool SILT::Log_store<Value>::insert(const SILT_key& key, const Value& value)
 		log_file_offset = tmp_log_file_offset;
 	}
 
-	// jeśli któraś asercja się wywali, tzn., że źle odtwarzano stan tablicy
+	/* jeśli któraś asercja jest fałszywa, to znaczy, że źle odtwarzano stan
+	tablicy */
 	assert(swapped ? (h2 & 0xFFFC) == (key.h4 & h1_mask)
 	: (h1 & 0xFFFC) == (key.h4 & h1_mask));
 	assert(swapped ? (h1 & 0xFFFC) == ((key.h4 & h2_mask) >> 16)
