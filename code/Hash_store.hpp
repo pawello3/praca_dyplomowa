@@ -69,7 +69,7 @@ namespace SILT
 			static uint8_t first_free_id;
 			char file_name[32];
 			FILE* hash_store_file;
-			uint8_t file_size;
+			uint32_t file_size;
 
 		public:
 			Hash_store(Log_store<Value>* log_store);
@@ -87,7 +87,7 @@ namespace SILT
 			Sorted_table_entry* sorted_table, uint32_t sorted_table_size,
 			uint16_t* count);
 			void counting_sort(Sorted_table_entry* buckets_table,
-			Sorted_table_entry* sorted_table, uint32_t sorted_table_size,
+			const Sorted_table_entry* sorted_table, uint32_t sorted_table_size,
 			uint8_t fragment, uint16_t* count);
 	};
 }

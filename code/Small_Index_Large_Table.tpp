@@ -18,6 +18,8 @@ template<typename Key, typename Value>
 SILT::Small_Index_Large_Table<Key, Value>::~Small_Index_Large_Table(void)
 {
 	delete log_store;
+	for(uint8_t i = 0; i < number_of_hash_stores; i++)
+		delete hash_stores_array[i];
 	delete[] hash_stores_array;
 	delete sorted_store;
 }
@@ -34,6 +36,8 @@ const Value& value)
 		assert(number_of_hash_stores <= maximum_number_of_hash_stores);
 		if(number_of_hash_stores == maximum_number_of_hash_stores)
 		{
+			for(uint8_t i = 0; i < number_of_hash_stores; i++)
+				hash_stores_array[i]->sort();
 			Sorted_store<Value>* tmp =
 			new Sorted_store<Value>(hash_stores_array, sorted_store);
 			delete sorted_store;

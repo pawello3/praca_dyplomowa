@@ -9,88 +9,25 @@
 
 int main()
 {
-	/*SILT::Log_store<double> log_store = SILT::Log_store<double>();
-	SILT::SILT_key key;
-	SILT::SHA_1(6452452, &key);*/
-	/*PRINT_BYTES_32(ntohl(key.h0));
-	PRINT_BYTES_32(ntohl(key.h1));
-	PRINT_BYTES_32(ntohl(key.h2));
-	PRINT_BYTES_32(ntohl(key.h3));
-	PRINT_BYTES_32(ntohl(key.h4));
-	printf("\n");
-	for(uint8_t i = 0; i < 160; i++)
+	SILT::Small_Index_Large_Table<uint32_t, double>* silt
+	= new SILT::Small_Index_Large_Table<uint32_t, double>();
+	FILE* file = fopen("random_data.txt", "r");
+	int32_t key;
+	double value;
+	for(uint32_t i = 0; i < 1050000; i++)
 	{
-		printf("%" PRIu8, key[i] ? 0x01 : 0x00);
-		if(i % 32 == 31)
-			printf("\n");
-	}
-	printf("\n\n");*/
-	/*log_store.insert(key, 7.92);
-	SILT::SHA_1(7, &key);
-	log_store.insert(key, 7.93);
-	SILT::SHA_1(41234, &key);
-	log_store.insert(key, 7.94);
-	SILT::SHA_1(245376, &key);
-	log_store.insert(key, 7.95);
-	SILT::SHA_1(5, &key);
-	log_store.insert(key, 7.91);
-	log_store.insert(key, 3.6);
-	log_store.insert(key, 3.6233233);
-	log_store.insert(key, 3.62222);
-	log_store.insert(key, 3.65555);
-	log_store.insert(key, 3.69999);
-	log_store.insert(key, 3.688);
-	log_store.insert(key, 3.635555);
-	bool b = log_store.insert(key, 3.6336565);
-	if(!b)
-		printf("Błąd wstawiania\n");
-	//log_store.remove(key);
-	bool reason = false;
-	double* d = log_store.get_value(key, &reason);
-	if(d != nullptr)
-		printf("%lf\n", *d);
-	else
-		printf("Key not found\n");*/
-	/*SILT::Hash_store<double> hash_store = SILT::Hash_store<double>(&log_store);
-	d = hash_store.get_value(key, &reason);
-	if(d != nullptr)
-		printf("%lf", *d);
-	else
-		printf("Key not found\n");
-	hash_store.sort();*/
-
-	/*
-	SILT::Hash_store<double>* hash_stores_array[15];
-	for(uint8_t i = 0; i < 15; i++)
-	{
-		hash_stores_array[i] = new SILT::Hash_store<double>(&log_store);
-		hash_stores_array[i]->sort();
+		if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+		{
+			silt->insert(key, value);
+		}
 	}
 
-	SILT::Sorted_store<double> sorted_store
-	= SILT::Sorted_store<double>(hash_stores_array, nullptr);
-
-	SILT::SHA_1(245376, &key);
-	d = sorted_store.get_value(key);
+	double* d = (*silt)[1142305634];
 	if(d != nullptr)
 		printf("%lf\n", *d);
 	else
 		printf("Key not found\n");
-
-	for(uint8_t i = 0; i < 15; i++)
-		delete hash_stores_array[i];
-	*/
-	SILT::Small_Index_Large_Table<int, double> silt
-	= SILT::Small_Index_Large_Table<int, double>();
-
-	silt.insert(5, 6.05);
-	silt.insert(457, 3463.535);
-	silt.insert(63456, 6.0245);
-
-	double* d = silt[63456];
-	if(d != nullptr)
-		printf("%lf\n", *d);
-	else
-		printf("Key not found\n");
+	fclose(file);
+	delete silt;
 	return 0;
 }

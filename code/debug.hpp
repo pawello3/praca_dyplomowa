@@ -92,6 +92,15 @@
 		fprintf(stderr, "%" PRIu32 "\n", x);\
 	}\
 	while(0)
+
+	#define PRINT_SILT_KEY(x)\
+	do\
+	{\
+		fprintf(stderr, "%010" PRIu32 " %010" PRIu32 " %010" PRIu32 " %010"\
+		PRIu32 " %010" PRIu32 "\n", x.h0, x.h1, x.h2, x.h3, x.h4);\
+	}\
+	while(0)
+
 #else
 	#define DEBUG(x)
 	#define PRINT_BYTES_8(x)

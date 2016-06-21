@@ -55,7 +55,10 @@ uint32_t right)
 {
 	uint32_t middle = partition_keys(depth, left, right);
 	if(representation_size + 2 > representation_array_size)
+	{
+		DEBUG(fprintf(stderr, "Podwajanie\n"));
 		double_size();
+	}
 	if(middle == left)
 	{
 		representation[representation_size++] = 0;
@@ -98,12 +101,14 @@ uint32_t range_right)
 		left++;
 	}
 	// left zawiera teraz pierwszy indeks tablicy, w którym jest 1
+
 	while(array_to_be_indexed[right][i] == 1)
 	{
 		if(right == range_left)
 			return range_left;
 		right--;
 	}
+	// right zawiera teraz pierwszy indeks tablicy, w którym jest 0
 
 	while(true)
 	{
@@ -119,6 +124,10 @@ uint32_t range_right)
 		if(left > right)
 			return left;
 
+		DEBUG(PRINT_UINT_32(left));
+		DEBUG(PRINT_UINT_32(right));
+		DEBUG(PRINT_UINT_32(range_left));
+		DEBUG(PRINT_UINT_32(range_right));
 		assert(false); // nie powinien tu wejść, gdyż klucze są posortowane
 
 		// zamiana kluczy pod indeksami left i right

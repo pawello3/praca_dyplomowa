@@ -78,7 +78,15 @@ namespace SILT
 
 	inline bool operator<(const SILT::SILT_key& lhs, const SILT::SILT_key& rhs)
 	{
-		return memcmp(&lhs, &rhs, sizeof(SILT::SILT_key)) < 0;
+		if(lhs.h0 != rhs.h0)
+			return lhs.h0 < rhs.h0;
+		if(lhs.h1 != rhs.h1)
+			return lhs.h1 < rhs.h1;
+		if(lhs.h2 != rhs.h2)
+			return lhs.h2 < rhs.h2;
+		if(lhs.h3 != rhs.h3)
+			return lhs.h3 < rhs.h3;
+		return lhs.h4 < rhs.h4;
 	}
 
 	inline bool operator>(const SILT::SILT_key& lhs, const SILT::SILT_key& rhs)
@@ -144,7 +152,25 @@ namespace SILT
 	inline bool operator<(const SILT::SILT_key_16& lhs,
 	const SILT::SILT_key_16& rhs)
 	{
-		return memcmp(&lhs, &rhs, sizeof(SILT::SILT_key_16)) < 0;
+		if(lhs.h0_l != rhs.h0_l)
+			return lhs.h0_l < rhs.h0_l;
+		if(lhs.h0_r != rhs.h0_r)
+			return lhs.h0_r < rhs.h0_r;
+		if(lhs.h1_l != rhs.h1_l)
+			return lhs.h1_l < rhs.h1_l;
+		if(lhs.h1_r != rhs.h1_r)
+			return lhs.h1_r < rhs.h1_r;
+		if(lhs.h2_l != rhs.h2_l)
+			return lhs.h2_l < rhs.h2_l;
+		if(lhs.h2_r != rhs.h2_r)
+			return lhs.h2_r < rhs.h2_r;
+		if(lhs.h3_l != rhs.h3_l)
+			return lhs.h3_l < rhs.h3_l;
+		if(lhs.h3_r != rhs.h3_r)
+			return lhs.h3_r < rhs.h3_r;
+		if(lhs.h4_l != rhs.h4_l)
+			return lhs.h4_l < rhs.h4_l;
+		return lhs.h4_r < rhs.h4_r;
 	}
 
 	inline bool operator>(const SILT::SILT_key_16& lhs,

@@ -66,8 +66,14 @@ SILT::Hash_store<Value>::Hash_store(SILT::Log_store<Value>* log_store)
 template<typename Value>
 SILT::Hash_store<Value>::~Hash_store(void)
 {
-	assert(!hash_table); /* powinna zostać usunięta podczas sortowania, czyli
-	nie posortowano tego Hash store'u */
+	if(hash_table != nullptr)
+	{
+		DEBUG(fprintf(stderr, "Tablica z haszowaniem powinna być usunięta. Ten \
+Hash store nie został posortowany\n"));
+		for(uint16_t i = 0; i < hash_table_size; i++)
+			delete[] hash_table[i];
+		delete[] hash_table;
+	}
 	fclose(hash_store_file);
 	if(std::remove(file_name) != 0)
 	{
@@ -238,6 +244,7 @@ void SILT::Hash_store<Value>::sort()
 		sorted_hash_store_file);
 		file_size++;
 	}
+	assert(sorted_table_size == file_size);
 	delete[] sorted_table;
 
 	// usunięcie starego pliku
@@ -257,53 +264,25 @@ template<typename Value>
 void SILT::Hash_store<Value>::radix_sort(Sorted_table_entry* buckets_table,
 Sorted_table_entry* sorted_table, uint32_t sorted_table_size, uint16_t* count)
 {
-	/*printf("\n");
-	for(uint8_t i = 0; i < sorted_table_size; i++)
-	{
-		printf("%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05"
-		PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05"
-		PRIu16 "\n",
-		sorted_table[i].key_16.h0_l, sorted_table[i].key_16.h0_r,
-		sorted_table[i].key_16.h1_l, sorted_table[i].key_16.h1_r,
-		sorted_table[i].key_16.h2_l, sorted_table[i].key_16.h2_r,
-		sorted_table[i].key_16.h3_l, sorted_table[i].key_16.h3_r,
-		sorted_table[i].key_16.h4_l, sorted_table[i].key_16.h4_r);
-	}
-	printf("\n\n\n");*/
 	for(uint8_t i = 0; i < 10; i++)
 	{
-		memset(count, 0, (hash_table_size * bucket_size) << 1);
+		memset(count, 0, (hash_table_size * bucket_size) * sizeof(uint16_t));
+		memset(buckets_table, 0, sorted_table_size
+		* sizeof(Sorted_table_entry));
 		counting_sort(buckets_table, sorted_table, sorted_table_size,
 		10 - i - 1, count);
 		memcpy(sorted_table, buckets_table, sorted_table_size
-		* sizeof(Sorted_table_entry));
-		/*for(uint8_t i = 0; i < sorted_table_size; i++)
-		{
-			printf("%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05"
-			PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16 "|%05" PRIu16
-			"|%05" PRIu16 "\n",
-			sorted_table[i].key_16.h0_l, sorted_table[i].key_16.h0_r,
-			sorted_table[i].key_16.h1_l, sorted_table[i].key_16.h1_r,
-			sorted_table[i].key_16.h2_l, sorted_table[i].key_16.h2_r,
-			sorted_table[i].key_16.h3_l, sorted_table[i].key_16.h3_r,
-			sorted_table[i].key_16.h4_l, sorted_table[i].key_16.h4_r);
-		}
-		printf("\n");*/
+		* sizeof(Sorted_table_entry)); /* TODO - zamiast kopiować podmienić
+		wskaźniki */
 	}
 }
 
 template<typename Value>
 void SILT::Hash_store<Value>::counting_sort(Sorted_table_entry* buckets_table,
-Sorted_table_entry* sorted_table, uint32_t sorted_table_size, uint8_t fragment,
-uint16_t* count)
+const Sorted_table_entry* sorted_table, uint32_t sorted_table_size,
+uint8_t fragment, uint16_t* count)
 {
 	uint16_t key;
-	/*for(uint32_t i = 0; i < sorted_table_size; i++)
-	{
-		memcpy(&key, ((uint8_t*) (sorted_table + i)) + (fragment << 1), 2);
-		PRINT_UINT_16(key);
-	}
-	printf("\n");*/
 	for(uint32_t i = 0; i < sorted_table_size; i++)
 	{
 		memcpy(&key, ((uint8_t*) (sorted_table + i)) + (fragment << 1), 2);
@@ -322,10 +301,4 @@ uint16_t* count)
 		buckets_table[count[key]] = sorted_table[i];
 		count[key]++;
 	}
-	/*for(uint32_t i = 0; i < sorted_table_size; i++)
-	{
-		memcpy(&key, ((uint8_t*) (buckets_table + i)) + (fragment << 1), 2);
-		PRINT_UINT_16(key);
-	}
-	printf("\n\n");*/
 }
