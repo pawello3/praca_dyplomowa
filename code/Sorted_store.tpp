@@ -21,7 +21,6 @@ Sorted_store<Value>* old_sorted_store)
 	}
 	strcpy(file_name, "Sorted_store.dat");
 	merge(hash_stores_array, old_sorted_store);
-	//DEBUG(PRINT_UINT_32(file_size));
 	build_trie_indexing();
 }
 
@@ -45,11 +44,6 @@ Sorted_store<Value>* old_sorted_store)
 	/* zakładamy, że rozmiar tablicy hash_stores_array to
 	maximum_number_of_hash_stores */
 	bool merging_with_sorted_store = old_sorted_store == nullptr ? false : true;
-
-	/*uint32_t sum = 0;
-	for(uint8_t i = 0; i < maximum_number_of_hash_stores; i++)
-		sum += hash_stores_array[i]->file_size;
-	DEBUG(PRINT_UINT_32(sum));*/
 
 	Merge_heap* heap = new Merge_heap(maximum_number_of_hash_stores + 1);
 	uint32_t first_unread_position[maximum_number_of_hash_stores + 1] = {0};
@@ -202,10 +196,34 @@ void SILT::Sorted_store<Value>::build_trie_indexing(void)
 template<typename Value>
 Value* SILT::Sorted_store<Value>::get_value(const SILT_key& key) const
 {
-	/*assert(trie_buckets[0].get_offset(key) < file_size);
+	SILT_key key_to_match;
+	fseek(sorted_store_file, 0, SEEK_SET);
+	uint32_t i;
+	for(i = 0; i < file_size; i++)
+	{
+		if(fread((void*) &key_to_match, sizeof(SILT_key), 1, sorted_store_file)
+		!= 1)
+		{
+			fprintf(stderr, "fread error\n");
+			exit(1);
+		}
+		if(key != key_to_match)
+		{
+			fseek(sorted_store_file, sizeof(Value), SEEK_CUR);
+		}
+		else
+		{
+			DEBUG(PRINT_SILT_KEY(key_to_match); PRINT_UINT_32(i);
+			PRINT_UINT_32(file_size));
+			break;
+		}
+	}
+
+	assert(trie_buckets[0].get_offset(key) < file_size);
+	DEBUG(PRINT_UINT_32(trie_buckets[0].get_offset(key)));
 	fseek(sorted_store_file, trie_buckets[0].get_offset(key)
 	* sorted_store_entry_size, SEEK_SET);
-	SILT_key key_to_match;
+	//SILT_key key_to_match;
 	if(fread((void*) &key_to_match, sizeof(SILT_key), 1, sorted_store_file)
 	!= 1)
 	{
@@ -213,15 +231,18 @@ Value* SILT::Sorted_store<Value>::get_value(const SILT_key& key) const
 		exit(1);
 	}
 	if(key != key_to_match)
+	{
+		DEBUG(PRINT_TEXT("Bardzo źle\n\n"));
 		return nullptr;
+	}
 	Value* returned_value = new Value();
 	if(fread((void*) returned_value, sizeof(Value), 1, sorted_store_file) != 1)
 	{
 		fprintf(stderr, "fread error\n");
 		exit(1);
 	}
-	return returned_value;*/
-	SILT_key key_to_match;
+	return returned_value;
+	/*SILT_key key_to_match;
 	Value* returned_value;
 	fseek(sorted_store_file, 0, SEEK_SET);
 	for(uint32_t i = 0; i < file_size; i++)
@@ -246,5 +267,5 @@ Value* SILT::Sorted_store<Value>::get_value(const SILT_key& key) const
 		}
 		return returned_value;
 	}
-	return nullptr;
+	return nullptr;*/
 }

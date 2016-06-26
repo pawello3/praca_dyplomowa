@@ -161,7 +161,7 @@ bool SILT::Log_store<Value>::insert(const SILT_key& key, const Value& value)
         log_file_offset = tmp_log_file_offset;
 	}
 
-	DEBUG(fprintf(stderr, "Przepełnienie, cofanie wstawienia\n"));
+	DEBUG(PRINT_TEXT("Przepełnienie, cofanie wstawienia"));
 
 	// odtwarzanie tablicy: wstawiamy do kubełka h1
 	for(uint8_t i = 0; i < maximum_number_of_displacements; i++)

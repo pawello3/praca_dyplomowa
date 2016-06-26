@@ -17,6 +17,11 @@ SILT::Trie<Value>::Trie(FILE* const sorted_store_file, uint32_t file_size)
 {
 	load_file_content_to_array();
 	build_trie(0, 0, file_size);
+	DEBUG(PRINT_UINT_32(representation_size));
+	/*for(uint32_t i = 0; i < representation_size; i++)
+	{
+		DEBUG(PRINT_UINT_32(representation[i]));
+	}*/
 	delete[] array_to_be_indexed;
 }
 
@@ -35,17 +40,16 @@ void SILT::Trie<Value>::load_file_content_to_array(void)
 		fprintf(stderr, "Sorted store too big, not enough RAM space\n");
 		exit(1);
 	}
-	SILT_key key;
 	for(uint32_t i = 0; i < file_size; i++)
 	{
 		fseek(sorted_store_file, i * (sizeof(SILT_key) + sizeof(Value)),
 		SEEK_SET);
-		if(fread((void*) &key, sizeof(SILT_key), 1, sorted_store_file) != 1)
+		if(fread((void*) &array_to_be_indexed[i], sizeof(SILT_key), 1,
+		sorted_store_file) != 1)
 		{
 			fprintf(stderr, "fread error\n");
 			exit(1);
 		}
-		array_to_be_indexed[i] = key;
 	}
 }
 
@@ -56,31 +60,31 @@ uint32_t right)
 	uint32_t middle = partition_keys(depth, left, right);
 	if(representation_size + 2 > representation_array_size)
 	{
-		DEBUG(fprintf(stderr, "Podwajanie\n"));
+		DEBUG(PRINT_TEXT("Podwajanie"));
 		double_size();
 	}
-	if(middle == left)
+	if(middle == left) // same jedynki
 	{
 		representation[representation_size++] = 0;
 		build_trie(depth + 1, left, right);
 	}
-	else if(middle == right)
+	else if(middle == right) // same zera
 	{
 		representation[representation_size++] = right - left;
 		build_trie(depth + 1, left, right);
 	}
 	else
 	{
-		if(left + 1 != middle)
+		if(left + 1 != middle) // w lewym synu jest poddrzewo
 		{
 			representation[representation_size++] = middle - left;
 			build_trie(depth + 1, left, middle);
 		}
-		else
+		else // lewy syn to liść
 		{
 			representation[representation_size++] = 1;
 		}
-		if(middle + 1 != right)
+		if(middle + 1 != right) // w prawym synu jest poddrzewo
 		{
 			build_trie(depth + 1, middle, right);
 		}
@@ -143,8 +147,8 @@ void SILT::Trie<Value>::double_size(void)
 	assert((representation_array_size << 1) > representation_array_size);
 	representation_array_size <<= 1;
     uint32_t* new_array = new uint32_t[representation_array_size];
-    memset(new_array, 0, representation_array_size);
-    memcpy(new_array, representation, (representation_array_size >> 1));
+    memset(new_array, 0, representation_array_size << 2);
+    memcpy(new_array, representation, ((representation_array_size >> 1) << 2));
     delete[] representation;
     representation = new_array;
 }
@@ -152,33 +156,69 @@ void SILT::Trie<Value>::double_size(void)
 template<typename Value>
 uint32_t SILT::Trie<Value>::get_offset(const SILT_key& key) const
 {
-	return get_offset(key, 0, 0);
+	DEBUG(for(uint32_t i = 0; i < 15; i++)
+	{
+		PRINT_UINT_32(representation[i]);
+	});
+	return get_offset(key, 0, 0, file_size - representation[0]);
 }
 
 template<typename Value>
-uint32_t SILT::Trie<Value>::get_offset(const SILT_key& key, uint32_t cursor,
-uint32_t depth) const
+uint32_t SILT::Trie<Value>::get_offset(const SILT_key& key, uint32_t depth,
+uint32_t cursor, uint32_t nodes_on_right) const
 {
+	assert(cursor < representation_size);
+	DEBUG(PRINT_TEXT("Kursor:"); PRINT_UINT_32(cursor);
+	PRINT_TEXT("Liści na lewo:"); PRINT_UINT_32(representation[cursor]);
+	PRINT_TEXT("Liści na prawo:"); PRINT_UINT_32(nodes_on_right);
+	PRINT_TEXT("Głębokość:"); PRINT_UINT_32(depth);
+	PRINT_TEXT("Bit:"); PRINT_UINT_32(key[depth]));
 	if(key[depth] == 0)
 	{
-		if(representation[cursor] == 0 || representation[cursor] == 1)
+		if(representation[cursor] == 0 || representation[cursor] == 1) /* lewy
+		liść na najniższym poziomie */
 			return 0;
-		return get_offset(key, cursor + 1, depth + 1);
-
+		return get_offset(key, depth + 1, cursor + 1, representation[cursor]
+		- representation[cursor + 1]);
 	}
 	else // key[depth] == 1
 	{
-		uint32_t left_distance = representation[cursor];
-		cursor = discard_left_subtrie(cursor);
-		return left_distance + get_offset(key, cursor, depth + 1);
+		if(nodes_on_right == 0 || nodes_on_right == 1) /* prawy	liść na
+		najniższym poziomie */
+			return representation[cursor];
+		if(representation[cursor] < 2)
+		{
+			return representation[cursor] + get_offset(key, depth + 1,
+			cursor + 1, nodes_on_right - representation[cursor + 1]);
+		}
+		else
+		{
+			uint32_t old_cursor = cursor;
+			uint32_t new_cursor = discard_subtrie(cursor + 1,
+			representation[cursor]) + 1;
+			return representation[old_cursor] + get_offset(key, depth + 1,
+			new_cursor, nodes_on_right - representation[new_cursor]);
+		}
 	}
 }
 
 template<typename Value>
-uint32_t SILT::Trie<Value>::discard_left_subtrie(uint32_t cursor) const
+uint32_t SILT::Trie<Value>::discard_subtrie(uint32_t cursor,
+uint32_t nodes_to_discard) const
 {
-	if(representation[cursor] == 0 || representation[cursor] == 1)
-		return cursor + 1;
-	cursor = discard_left_subtrie(cursor + 1);
-	return discard_left_subtrie(cursor + 1);
+	if(nodes_to_discard == 0 || nodes_to_discard == 1)
+		return cursor - 1;
+	uint32_t left_son = representation[cursor];
+	if(nodes_to_discard - left_son > 1)
+	{
+		cursor = discard_subtrie(cursor + 1, left_son);
+		return discard_subtrie(cursor + 1, nodes_to_discard - left_son);
+	}
+	return discard_subtrie(cursor + 1, left_son);
+	/* Wersja krótsza, ale może działać nieco wolniej
+	if(nodes_to_discard == 0 || nodes_to_discard == 1)
+		return cursor - 1;
+	uint32_t left_son = representation[cursor];
+	cursor = discard_subtrie(cursor + 1, left_son);
+	return discard_subtrie(cursor + 1, nodes_to_discard - left_son);*/
 }

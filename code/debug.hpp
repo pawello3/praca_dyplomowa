@@ -24,6 +24,13 @@
 	}\
 	while(0)
 
+	#define PRINT_TEXT(x)\
+	do\
+	{\
+		fprintf(stderr, "%s\n", x);\
+	}\
+	while(0)
+
 	#define PRINT_BYTES_8(x)\
 	do\
 	{\

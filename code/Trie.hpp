@@ -43,9 +43,10 @@ namespace SILT
 			zaczynają się klucze z i-tą pozycją równą 1, gdy takich nie ma to
 			zwraca rozmiar tablicy */
 			void double_size(void);
-			uint32_t get_offset(const SILT_key& key, uint32_t cursor,
-			uint32_t depth) const;
-			uint32_t discard_left_subtrie(uint32_t cursor) const;
+			uint32_t get_offset(const SILT_key& key, uint32_t depth,
+			uint32_t cursor, uint32_t nodes_on_right) const;
+			uint32_t discard_subtrie(uint32_t cursor, uint32_t nodes_to_discard)
+			const;
 	};
 }
 

@@ -68,8 +68,8 @@ SILT::Hash_store<Value>::~Hash_store(void)
 {
 	if(hash_table != nullptr)
 	{
-		DEBUG(fprintf(stderr, "Tablica z haszowaniem powinna być usunięta. Ten \
-Hash store nie został posortowany\n"));
+		DEBUG(PRINT_TEXT("Tablica z haszowaniem powinna być usunięta => Ten \
+Hash store nie został posortowany"));
 		for(uint16_t i = 0; i < hash_table_size; i++)
 			delete[] hash_table[i];
 		delete[] hash_table;
@@ -91,7 +91,7 @@ void SILT::Hash_store<Value>::reset(void)
 template<typename Value>
 char* SILT::Hash_store<Value>::next_name(void)
 {
-	sprintf(file_name, "Hash_store_%" PRIu32 ".dat", first_free_id);
+	sprintf(file_name, "Hash_store_%02" PRIu32 ".dat", first_free_id);
 	first_free_id++;
 	return file_name;
 }
