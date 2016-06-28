@@ -6,6 +6,7 @@
 \usepackage{xpatch}
 \newcommand{\cpp}{C\raisebox{0.5ex}{{\tiny\textbf{++}}}}
 \newtheorem{Def}{Definicja}
+\newtheorem{Fa}{Fakt}
 \newtheorem{Lem}{Lemat}
 \newtheorem{Tw}{Twierdzenie}
 % b - begin
@@ -18,6 +19,11 @@
 \newcommand{\bdfi}{\begin{Def}\normalfont\indent}
 \newcommand{\bdfni}[1]{\begin{Def}{#1}\normalfont\indent}
 \newcommand{\edf}{\end{Def}\medskip}
+\newcommand{\bfa}{\begin{Fa}~\\\normalfont\indent}
+\newcommand{\bfan}[1]{\begin{Fa}{#1}~\\\normalfont\indent}
+\newcommand{\bfai}{\begin{Fa}\normalfont\indent}
+\newcommand{\bfani}[1]{\begin{Fa}{#1}\normalfont\indent}
+\newcommand{\efa}{\end{Fa}\medskip}
 \newcommand{\ble}{\begin{Lem}~\\\normalfont\indent}
 \newcommand{\blen}[1]{\begin{Lem}{#1}~\\\normalfont\indent}
 \newcommand{\blei}{\begin{Lem}\normalfont\indent}
@@ -34,6 +40,9 @@
 \declaretheorem[name={Dowód},style=mystyle,unnumbered,]{Proof}
 \newcommand{\bdd}{\begin{Proof}~\\\normalfont\indent}
 \newcommand{\edd}{\end{Proof}}
+\declaretheorem[name={Szkic dowodu},style=mystyle,unnumbered,]{ProofSketch}
+\newcommand{\bsd}{\begin{ProofSketch}~\\\normalfont\indent}
+\newcommand{\esd}{\end{ProofSketch}}
 
 \polishtitle{Analiza teoretyczna i porównawcza\fmlinebreak efektywnej pamięciowo, wysoce wydajnej\fmlinebreak tablicy asocjacyjnej SILT\fmlinebreak (Small Index Large Table)}
 \englishtitle{Theoretical and Comparative Analysis of\fmlinebreak Memory-Efficient, High-Performance\fmlinebreak Associative Array SILT\fmlinebreak (Small Index Large Table)}
@@ -104,49 +113,66 @@
 	\chapter{Analiza teoretyczna}
 		\section{Haszowanie kukułcze}
 			\subsection{Wprowadzenie do analizy}
-				Haszowanie kukułcze szeroko opisane w pracy \cite{CH} ma oszacowanie czasu operacji na poziomie $O(1)$. Wynika to z analizy prawdopodobieństwa wystąpienia łańcucha kolizji podczas wstawiania. Analizowany jest graf dwudzielny wyznaczony przez kolejne kubełki. Kluczowe w analizie jest ograniczenie możliwej liczby iteracji oraz wyznaczenie optymalnej stałej. Po osiągnięciu takiej liczby operacji następuje konieczność przehaszowania tablicy.\\
+				Haszowanie kukułcze szeroko opisane w pracy \cite{CH} ma oszacowanie oczekiwanego czasu operacji na poziomie $O(1)$. Wynika to z analizy prawdopodobieństwa wystąpienia łańcucha kolizji podczas wstawiania. Analizowany jest graf dwudzielny wyznaczony przez kolejne kubełki. Kluczowe w analizie jest ograniczenie możliwej liczby iteracji oraz wyznaczenie optymalnej stałej. Po osiągnięciu takiej liczby operacji następuje konieczność przehaszowania tablicy.\\
 				\indent Różnicą w analizie, w kontekście haszowania za pomocą częściowych kluczy, jest inny sposób zapewnienia stałego czasu wstawiania. Oczywiście limit iteracji jest zachowany, natomiast tablica nie jest już ponownie haszowana. Decydujemy się wtedy na wycofanie transakcji (wstawiania lub usuwania). Takie odtwarzanie trwa nie więcej niż trwało jego nieudane wstawianie do tablicy z haszowaniem. Wobec czego ta operacja ma co najwyżej czas dwukrotnie dłuższy, czyli dalej stały.\\
 				\indent Podobna uwaga dotyczy obliczania wartości funkcji haszujących. W zwykłej wersji obliczaliśmy ją gdy była potrzebna (dla danego klucza mogła być więc obliczana wielokrotnie), a w zmodyfikowanej wersji wszystkie alternatywne kubełki są od razu obliczone. Należy podkreślić, że obliczenie to realizowane jest kosztem dwóch instrukcji maszynowych (wyłuskujemy odpowiedni fragment klucza). Ten klucz został wcześniej shaszowany funkcją SHA-1, ale to było zrobione tylko raz, więc jest to czas stały. W pewnym sensie odrobinę zyskujemy czasowo na obliczaniu funkcji haszujących, tracimy zaś na pamięci.\\
 				\indent Poprzednia uwaga nie jest kluczowa w kontekście złożoności. Na potrzeby uzasadnienia poprawności oszacowań dla czasu działania haszowania wystarczy zauważyć, że założenia dotyczące oryginalnego modelu nie zostały osłabione. Funkcje haszujące są dobrze dobrane i niezależne (fragmenty klucza, z których wybieramy znaczniki nie pokrywają się), co wynika z własności kluczy generowanych algorytmem SHA-1.\\
 				\indent Ostatnią rzeczą, która wymaga komentarza jest użycie kubełków o rozmiarze większym niż $1$. Wpływa to pozytywnie na możliwość wypełnienia tablicy. Dzięki temu w \cite{SILT} osiągnięto zajętość na poziomie $93$\%. Inny podobny pomysł, tym razem bazujący na dodaniu małego schowka, który ma poprawić zajętość tablicy jest opisany w pracy \cite{CHwS}. Oczywiście aby zachować własności probabilistyczne podczas wypychania kluczy z alternatywnego kubełka losujemy, który wpis ma być usunięty (w naszym przypadku losujemy liczbę od $0$ do $3$). Możemy to zrobić, gdyż kolejność wpisów wewnątrz kubełka nie ma znaczenia.
 			\subsection{Właściwa analiza}
-				Przyjrzymy się teraz kanonicznej wersji haszowania kukułczego. Ta wersja różni się nieznacznie od przedstawionej wcześniej w konteście LogStore'a (\ref{logstore}) -- zamiast jednej tablicy mamy dwie ($T_1$ i $T_2$), każda z nich jest przypisana do konkretnej funkcji haszującej (odpowiednio $h_1$ i $h_2$). Obie wersje są sobie równoważne, ale z punktu widzenia analizy złożoności wersja z dwiema tablicami będzie wygodniejsza. Dalsza część analizy bazuje na pracy \cite{CH} i wykładzie \cite{UW}\\
-				\indent Niech $n$ oznacza liczbę elementów, które chcemy umieścić w tablicy z haszowaniem. Rozważmy dwudzielny graf $G=(V,E)$, którego wierzchołki odpowiadają komórkom tablic $T_1$ i $T_2$. Krawędzie w grafie odpowiadają kubełkowi oraz alternatywnemu kubełkowi. Innymi słowy dla danego klucza $k$ w grafie $G$ istnieje krawędź $(T_1[h_1(k)], T_2[h_2(k)])$, gdzie $h_1, h_2 : U\to\left\{0,\ldots, t - 1\right\}$ to funkcje haszujące pochodzące z $(1, MaxLoop)$-uniwersalnej rodziny funkcji haszujących\cite{CH}. $MaxLoop$ oznacza ograniczenie na liczbę iteracji.\\
-				\indent Niech $b_1,\ldots,b_i$ będzie ciągiem wierzchołków odwiedzanych przez klucz $k$ podczas wstawiania go do tablicy z haszowaniem kukułczym. Zauważmy, że wyznacza on w grafie $G$ pewną ścieżkę $S$, niekoniecznie prostą (dopuszczamy powtarzające się wierzchołki).
-				\ble
+				\bdf
+					Rodzinę $\left\{h_i\right\}_i\in I$, $h_i: U \to T$ nazywamy $\left(c, m\right)$-uniwersalną, gdy dla dowolnych $m$ różnych elementów $x_1,\ldots,x_m \in U$, dowolnych $y_i,\ldots,y_m \in T$ i indeksu $i \in I$ wybranego losowo z rozkładem jednostajnym
+					$$\Pr[h_i(x_1) = y_1,\ldots,h_i(x_m) = y_m] \leq \frac{c}{|T|^m}$$
+				\edf
+				Przyjrzymy się teraz kanonicznej wersji haszowania kukułczego. Ta wersja różni się nieznacznie od przedstawionej wcześniej w konteście LogStore'a (\ref{logstore}). Zamiast jednej tablicy $T$ o rozmiarze $2 \cdot t$ mamy dwie -- $T_1$ i $T_2$, obie o rozmiarze $t$. Każda z nich jest przypisana do konkretnej funkcji haszującej odpowiednio $h_1$ i $h_2$. Funkcje $h_1, h_2 : U\to\left\{0,\ldots, t - 1\right\}$ oraz pochodzą z $(1, MaxLoop)$-uniwersalnej rodziny funkcji haszujących, gdzie $MaxLoop$ oznacza stałą ograniczającą liczbę iteracji. Jedna komórka tablicy odpowiada jednemu kubełkowi. Dla uproszczenia przyjmujemy, że ma on rozmiar $1$. Obie wersje są sobie równoważne, ale z punktu widzenia analizy złożoności wersja z dwiema tablicami będzie wygodniejsza. Dalsza część analizy bazuje na pracy \cite{CH} i wykładzie \cite{UW}.\\
+				\indent Niech $n$ oznacza liczbę kluczy, które chcemy umieścić w słowniku, czyli naszej strukturze złożonej z dwóch tablic $T_1$ i $T_2$, używając haszowania kukułczego oraz niech $t\geq 2\cdot n$. Będziemy analizować pojedyńczą operację wstawienia klucza.\\
+				\indent W danej chwili w słowniku znajduje się $m$ kluczy. Rozważmy dwudzielny graf nieskierowany $G=(V,E)$, którego wierzchołki odpowiadają komórkom tablic $T_1$ i $T_2$. Krawędzie w grafie łączą wierzchołki $h_1(k_i)$ z $h_2(k_i)$ dla $i \in \left\{1,\ldots,m\right\}$ i są unikalnie etykietowane kluczami $k_i$.\\
+				\indent Wstawiamy $(m+1)$-szy klucz ($k_{m+1}$). Trafia on do jednego ze swoich kubełków, bez straty ogólności do $T_1[h_1(k_{m+1})]$. Niech $x_1,\ldots,x_s$ będzie ciągiem krawędzi odwiedzanych przez operację wstawiania klucza $k = k_{m+1}$ do słownika. Zauważmy, że wyznacza on w grafie $G$ pewną ścieżkę $S$ o długości (liczbie krawędzi) równej $s$, niekoniecznie prostą (dopuszczamy powtarzające się wierzchołki). Przejście krawędzi $e$ odpowiada procedurze wstawienia klucza, który nie ma swojego kubełka (wyjściowo jest to klucz będący argumentem funkcji \texttt{insert}) na siłę do zajętego kubełka i wypchnięciu klucza, który go zajmował do jego alternatywnego kubełka.
+				\bfa
 					Jeśli $k$ jest kluczem wstawianym do tablicy z haszowaniem kukułczym, to wstawienie powiedzie się, gdy występuje co najwyżej jeden cykl w $S$.
+				\efa
+				\bsd
+					Jeśli w wyniku wypychnięcia kolejnych kluczy odwiedzamy różne kubełki i na końcu trafiamy na pusty, to udało nam się wstawić. Jeśli wróciliśmy do jakiegoś kubełka (mamy cykl), to tym razem klucz $k$ będzie wypychany z powrotem, aż wróci do początkowego kubełka. Wówczas zostanie wstawiony do alternatywnego kubełka, a skoro nie ma więcej cykli, to kolejne wypchnięcia doprowadzą do pomyślnego wstawienia klucza do słownika.
+				\esd
+				\bfa
+					Jeśli $k$ jest kluczem wstawianym do tablicy z haszowaniem kukułczym, to wstawienie nie powiedzie się i konieczne będzie ponowne przehaszowanie tablicy, gdy występują $2$ lub więcej cykle w $S$.
+				\efa
+				\bsd
+					Niech $S = \left(x_1,\ldots,x_i,\ldots,x_l,\ldots,x_s\right)$, gdzie $x_i$ i $x_l$ oznaczają krawędzie zamykające dwa pierwsze cykle, czyli powodujące przemieszczenie kluczy do poprzednio odwiedzonego kubełka. Oczywiście pomiędzy $x_i$ a $x_l$ znajduje się krawędź $x_j$ taka, że klucz wstawiony na początku iteracji ($k$) zostaje przemieszczony do swojego alternatywnego kubełka. Rozważmy prefiks $P$ ścieżki $S$ zawierający dwa początkowe cykle. Zauważmy, że w momencie przejścia ostatniej krawędzi w $P$ klucz wstawiany do słownika ($k$) znów zostanie wypchnięty do swojego pierwszego kubełka. Oznacza to, że kolejne operacje będą powtarzane cyklicznie (zapętlą się, aż osiągną $MaxLoop$ wypchnięć) i nigdy nie znajdziemy miejsca w naszej strukturze.
+				\esd
+				\ble
+					Załóżmy, że $S$ zawiera co najwyżej jeden cykl. Wówczas dla każdego prefiksu $P = \left(x_1,\ldots,x_p\right)$ ścieżki $S$ istnieje podciąg ścieżki $P$ zawierający $\frac{p}{3}$ różnych krawędzi (w sensie etykiet), zaczynający się od $k$, gdzie $k$ jest wstawianym do słownika kluczem.
 				\ele
 				\bdd
-					Jeśli w wyniku wypychania kolejnych kluczy odwiedzamy różne kubełki i na końcu trafiamy na pusty, to udało nam się wstawić. Jeśli wróciliśmy do jakiegoś kubełka, to tym razem klucz $k$ zostanie przerzucony do alternatywnego kubełka, a skoro nie ma więcej cykli, to podążając tamtą ścieżką uda nam się wstawić ten klucz do tablicy.
+					Jeśli procedura wstawiania nie wraca nigdy do poprzednio odwiedzonego wierzchołka, to $S$ nie zawiera cyklu, więc prefiks jest ciągiem $p$ różnych kluczy (w sensie etykiet krawędzi), zaczynającym się w $k$.\\
+					\indent W przeciwnym przypadku $S$ zawiera dokładnie jeden cykl. Wówczas\linebreak
+					$S = \left(x_1,\ldots,x_i,\ldots,x_j,\ldots,x_s\right)$, gdzie $x_i$ jest krawędzią zamykającą cykl, a $x_j$ krawędzią przenoszącą wstawiany klucz $k$ do alternatywnego kubełka. Jeśli $p < j$, to początkowe $i \geq \frac{j}{2} \geq \frac{p}{2}$ kluczy tworzy szukany podciąg. Dla $p \geq j$ jeden z ciągów $\left(x_1,\ldots,x_{i-1}\right)$ lub $\left(x_j,\ldots,x_p\right)$ ma długość przynajmniej $\frac{p}{3}$.
 				\edd
+				Chcemy określić złożoność procedury wstawiania. Rozważmy pojedyńcze wstawienie klucza $k$ do słownika. Chcemy obliczyć jakie jest prawdopodobieństwo tego, że procedura wstawiania trwa przynajmniej $q$ tur (tzn. $q$ razy wypychano klucz). Oczywiście $q \leq MaxLoop$. W przeciwnym przypadku prawdopodobieństwo to wynosi $0$.\\
 				\ble
-					Jeśli $k$ jest kluczem wstawianym do tablicy z haszowaniem kukułczym, to wstawienie nie powiedzie się, gdy występują $2$ lub więcej cykle w $S$.
+					Prawdopodobieństwo wystąpienia co najwyżej jednego cyklu na ścieżce $S$ o długości $q$ jest ograniczone przez $2 \cdot \left(\frac{1}{2}\right)^{\frac{q}{3} - 1}$.
 				\ele
 				\bdd
-					W procesie wstawiania każda krawędź na ścieżce $S$ odpowiada kluczowi, dla którego należy znaleźć wolny kubełek. Skoro w spójnej składowej o $r$ wierzchołkach, wyznaczonej przez ścieżkę, znajdują się dwa cykle, to musi w niej też być przynajmniej $r + 1$ krawędzi. W związku z tym mamy więcej kluczy do wstawienia (przynajmniej $r + 1$) niż wierzchołków (kubełków, dokładnie $r$).
+					Na mocy lematu jeśli ścieżka $S$ zawiera co najwyżej jeden cykl, to istnieje podciąg długości $\frac{q}{3}$, zaczynający się od $k$. Zatem prawdopodobieństwo wystąpienia takiej ścieżki $S$ jest ograniczone z góry przez prawdopodobieństwo wystąpienia takiego podciągu (może się on zaczynać od kubełka w tablicy $T_1$ bądź kubełka w tablicy $T_2$), które wynosi
+					$$2\cdot n^{\frac{q}{3}-1}\cdot \left(\frac{1}{t}\right)^{\frac{q}{3}-1} = 2 \cdot \left(\frac{n}{t}\right)^{\frac{q}{3} - 1}\leq 2 \cdot \left(\frac{1}{2}\right)^{\frac{q}{3} - 1}$$
 				\edd
-				\ble
-					Prawdopodobieństwo wystąpienia co najwyżej jednego cyklu na ścieżce $S$ jest ograniczone przez $2 \cdot \left(\frac{n}{t}\right)^{\frac{r}{3} - 1}$.
-				\ele
 				\ble
 					Prawdopodobieństwo wystąpienia dwóch cykli na ścieżce $S$ jest ograniczone przez $O\left(\frac{1}{n^2}\right)$.
 				\ele
-				Oba oszacowania pochodzą z \cite{CH}. Przykładowo przyjrzyjmy się dowodowi ostatniego lematu.
-				\bdd
-					Rozważmy ścieżkę długości $r$. Chcemy oszacować liczbę możliwych wystąpień dwóch cykli.\\
-					\indent Niech $b_1$ będzie ustalonym wierzchołkiem startowym. Na $n^{r - 1}$ sposobów wybieramy pozostałe wierzchołki na ścieżce, na $r^3$ sposobów określamy możliwe wybory indeksów dla wierzchołków zamykających cykl oraz na $t^{r - 1}$ sposobów wybieramy wierzchołki grafu, przez które będzie przechodził cykl. Dla jednego z nich nie ma miejsca, więc musimy odjąć jeden od $r$. Otrzymujemy oszacowanie na liczbę cykli równe $n^{r - 1}\cdot r^3\cdot t^{r - 1}$.\\
-					\indent Zauważmy jednak, że każda krawędź może znaleźć się na cyklu z prawdopodobieństwem $\left(\frac{1}{t}\right)^2$. Co daje nam oszacowanie $\frac{n^{r - 1}\cdot r^3\cdot t^{r - 1}}{t^{2r}}$. Aby otrzymać ostateczne oszacowanie obliczamy sumę po wszystkich możliwych wartościach $r$
+				\bsd
+					Rozważmy ścieżkę długości $s$. Chcemy oszacować liczbę możliwych wystąpień dwóch cykli.\\
+					\indent Niech $k$ będzie ustalonym wierzchołkiem startowym. Szacujemy z góry przez $n^{s - 1}$ liczbę sposobów wyboru pozostałych wierzchołków na ścieżce, przez $s^3$ liczbę możliwych wyborów indeksów dla krawędzi rozpoczynającej cykl, krawędzi zamykającej cykl i krawędzi końcej ($x_s$) oraz na $t^{s - 1}$ sposobów wybieramy wierzchołki grafu, przez które będzie przechodził cykl. Dla jednego z nich nie ma miejsca, więc musimy odjąć jeden od $s$. Otrzymujemy oszacowanie na liczbę cykli równe $n^{s - 1}\cdot s^3\cdot t^{s - 1}$.\\
+					\indent Zauważmy jednak, że każda krawędź może znaleźć się na cyklu z prawdopodobieństwem $\left(\frac{1}{t}\right)^2$, gdyż funkcje haszujące pochodzą z rodziny $(1, MaxLoop)$-uniwersalnej i $s \leq MaxLoop$. Co daje nam oszacowanie $\frac{n^{s - 1}\cdot s^3\cdot t^{s - 1}}{t^{2s}}$. Aby otrzymać ostateczne oszacowanie obliczamy sumę po wszystkich możliwych wartościach $s$
 					$$
-						\displaystyle\sum_{r\geq 3} \frac{n^{r - 1}\cdot r^3\cdot t^{r - 1}}{t^{2r}} \leq O\left(\frac{1}{n^2}\right)
+						\displaystyle\sum_{s\geq 3} \frac{n^{s - 1}\cdot s^3\cdot t^{s - 1}}{t^{sr}} \leq O\left(\frac{1}{n^2}\right)
 					$$
-				\edd
+				\esd
 				\btw
 					Oczekiwany koszt operacji wstawiania jest stały.
 				\etw
-				\bdd
-					Czas wstawiania możemy obliczyć stosując wzór na prawdopodobieństwo warunkowe. Obliczamy czas potrzebny w sytuacji, w której nie ma potrzeby przehaszowania tablicy. Wynosi on $O(1) \cdot \left(1 - O\left(\frac{1}{n^2}\right)\right)$. Oszacowanie na koszt pojedyńczej operacji wynika z obliczenia sumy $\displaystyle\sum_r 2 \cdot \left(\frac{n}{t}\right)^{\frac{r}{3} - 1}$, którą można oszacować przez $O\left(\displaystyle\sum_r \left(\frac{1}{2}\right)^{\frac{r}{3} - 2}\right) = O(1)$. Czas w przypadku konieczności ponownego haszowania wynosi $O(n\log n)\cdot O\left(\frac{1}{n^2}\right)$. Oszacowanie na koszt pojedyńczej operacji wynika z oszacowania na wartość $MaxLoop$, które jest równe $O(\log n)$.\\
+				\bsd
+					Czas wstawiania możemy obliczyć rozbijając przestrzeń zdarzeń. Obliczamy czas potrzebny w sytuacji, w której nie ma potrzeby przehaszowania tablicy. Wynosi on $O(1) \cdot \left(1 - O\left(\frac{1}{n^2}\right)\right)$. Oszacowanie na koszt pojedyńczej operacji wynika z obliczenia sumy $\displaystyle\sum_s 2 \cdot \left(\frac{n}{t}\right)^{\frac{s}{3} - 1}$, którą można oszacować przez $O\left(\displaystyle\sum_r \left(\frac{1}{2}\right)^{\frac{s}{3} - 2}\right) = O(1)$. Czas w przypadku konieczności ponownego haszowania wynosi $O(n\log n)\cdot O\left(\frac{1}{n^2}\right)$. Oszacowanie na koszt pojedyńczej operacji wynika z oszacowania na wartość $MaxLoop$, które jest równe $O(\log n)$.\\
 					\indent Po dodaniu do siebie rozłącznych możliwosci otrzymujemy $O(1)$.
-				\edd
+				\esd
 		\section{Fałszywe pozytywne wskazania}
 			Dla każdego klucza mamy do dyspozycji 2 kubełki po 4 wpisy, w sumie $8=2^3$. Zatem prawdopodobieństwo fałszywie pozytywnego wskazania wynosi
 			$$\frac{2^3}{2^{14}} = 2^{-11} = 0,488\%$$
@@ -154,7 +180,7 @@
 		\section{Koszt operacji słownikowych}
 			Z powyższych rozważań wynika, że złożoność wszystkich operacji słownikowych tj. wstawiania, usuwania i pobierania wartości jest stała lub niemalże stała (patrz: fałszywe pozytywne wskazania). Jest to czas zamortyzowany oraz dotyczy liczby odczytów z pamięci flash. Właściwie po przedstawieniu konstrukcji LogStore powinno się to wydać oczywiste. Dopisywanie nowych par do pliku to pojedyncza operacja - tego wymagają operacje \texttt{insert} i \texttt{remove}. Czasem zamiast wstawiania należy zmodyfikować jakiś wpis, lecz to nie zmienia liczby odczytów z dysku. Obie operacje mogą być obarczone kosztem konieczności ponownego sprawdzenia, podobnie jak operacje \texttt{get\_value}. Wszystkie te operacje działają więc w czasie $O(1+\varepsilon)$ dla konfigurowalnego, małego $\varepsilon$.\\
 			\indent Co do zasady kolejne struktury poprawiają jedynie zajętość pamięciową. Jasno widać, że złożoność operacji \texttt{get\_value} nie zmienia się przy przejściu do HashStore. Nieco inaczej jest przy SortedStore, gdzie tworzone jest nowe indeksowanie. Czas ten jest także ograniczony poprzez zastosowanie kubełków zawierających drzewa trie dla konkretnego podziału uniwersum kluczy.\\
-			\indent Aby poprawić zajętość pamięci wykonujemy od czasu do czasu kosztowe operacje. Jednak łatwo się przekonać, że dają się one zamortyzować w czasie. Konwersja z LogStore do HashStore jest realizowana w czasie stałym z uwagi na rozmiar obu struktur. Jedyna potencjalnie kosztowna operacja to tworzenie nowego SortedStore'u. Zauważmy jednak, że sortowanie HashStorów działa w czasie liniowym od rozmiaru pliku, czyli jest to stała (bo HashStore ma stały rozmiar). Scalanie również się amortyzuje, gdy dysponujemy wersją wzbogaconą o obliczenia równoległe.
+			\indent Aby poprawić zajętość pamięci wykonujemy od czasu do czasu kosztowne operacje. Jednak łatwo się przekonać, że dają się one zamortyzować w czasie. Konwersja z LogStore do HashStore jest realizowana w czasie stałym z uwagi na rozmiar obu struktur. Jedyna potencjalnie kosztowna operacja to tworzenie nowego SortedStore'u. Zauważmy jednak, że sortowanie HashStorów działa w czasie liniowym od rozmiaru pliku, czyli jest to stała (bo HashStore ma stały rozmiar). Scalanie również się amortyzuje, gdy dysponujemy wersją wzbogaconą o obliczenia równoległe.
 	\chapter{Opis implementacji}
 		\section{Struktura programu}
 			Program składa się z klas odpowiedzialnych za poszczególne elementy struktury danych. Dla każdej części składowej tj. dla LogStore -- \texttt{Log\_store}, HashStore -- \texttt{Hash\_store} i SortedStore -- \texttt{Sorted\_store} zostały wydzielone osobne klasy. Wyróżniono także klasę opakowującą całą strukturę -- \texttt{Small\_Index\_Large\_Table}.\\
