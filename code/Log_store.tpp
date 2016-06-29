@@ -178,11 +178,13 @@ bool SILT::Log_store<Value>::insert(const SILT_key& key, const Value& value)
 
 	/* jeśli któraś asercja jest fałszywa, to znaczy, że źle odtwarzano stan
 	tablicy */
+	#ifdef DEBUG_MODE
 	assert(swapped ? (h2 & 0xFFFC) == (key.h4 & h1_mask)
 	: (h1 & 0xFFFC) == (key.h4 & h1_mask));
 	assert(swapped ? (h1 & 0xFFFC) == ((key.h4 & h2_mask) >> 16)
 	: (h2 & 0xFFFC) == ((key.h4 & h2_mask) >> 16));
 	assert(log_file_offset == file_size);
+	#endif // DEBUG_MODE
 	return false;
 }
 

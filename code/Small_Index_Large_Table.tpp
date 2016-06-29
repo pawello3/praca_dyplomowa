@@ -17,6 +17,7 @@ SILT::Small_Index_Large_Table<Key, Value>::Small_Index_Large_Table(void)
 template<typename Key, typename Value>
 SILT::Small_Index_Large_Table<Key, Value>::~Small_Index_Large_Table(void)
 {
+	Hash_store<Value>::reset();
 	delete log_store;
 	for(uint8_t i = 0; i < number_of_hash_stores; i++)
 		delete hash_stores_array[i];

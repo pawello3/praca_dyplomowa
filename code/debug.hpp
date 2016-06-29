@@ -11,7 +11,7 @@
 #include <cassert>
 #include <arpa/inet.h>
 
-#define DEBUG_MODE
+//#define DEBUG_MODE
 #ifdef DEBUG_MODE
 	#define DEBUG(x)\
 	do\

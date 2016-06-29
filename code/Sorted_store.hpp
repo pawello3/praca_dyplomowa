@@ -24,7 +24,9 @@ namespace SILT
 			uint32_t file_size; // liczba wpisów w pliku
 			const uint8_t sorted_hash_store_entry_size;
 			const uint8_t sorted_store_entry_size;
-			Trie<Value>* trie_buckets; // 2^16 kubełków
+			Trie<Value>* trie;
+			// TODO (dodanie wielu kubełków)
+			//Trie<Value>* trie_buckets; // 2^16 kubełków
 
 		public:
 			Sorted_store(Hash_store<Value>** hash_stores_array,

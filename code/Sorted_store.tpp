@@ -27,8 +27,10 @@ Sorted_store<Value>* old_sorted_store)
 template<typename Value>
 SILT::Sorted_store<Value>::~Sorted_store(void)
 {
-	trie_buckets[0].~Trie(); // TODO (usuwanie wszystkich kubełków)
-	operator delete[](static_cast<void*>(trie_buckets));
+	//TODO (usuwanie wszystkich kubełków)
+	/*trie_buckets[0].~Trie();
+	operator delete[](static_cast<void*>(trie_buckets));*/
+	delete trie;
 	fclose(sorted_store_file);
 	if(std::remove(file_name) != 0)
 	{
@@ -187,16 +189,18 @@ Sorted_hash_store_entry* returned_entry)
 template<typename Value>
 void SILT::Sorted_store<Value>::build_trie_indexing(void)
 {
-	trie_buckets = static_cast<Trie<Value>*> (operator new[]
-	(1 * sizeof(Trie<Value>)));
-	new(&trie_buckets[0]) Trie<Value>(sorted_store_file, file_size);
+	trie = new Trie<Value>(sorted_store_file, file_size);
 	// TODO (dodanie wielu kubełków)
+	/*trie_buckets = static_cast<Trie<Value>*> (operator new[]
+	(1 * sizeof(Trie<Value>)));
+	new(&trie_buckets[0]) Trie<Value>(sorted_store_file, file_size);*/
 }
 
 template<typename Value>
 Value* SILT::Sorted_store<Value>::get_value(const SILT_key& key) const
 {
-	SILT_key key_to_match;
+	// Sprawdzenie poprawności
+	/*SILT_key key_to_match;
 	fseek(sorted_store_file, 0, SEEK_SET);
 	uint32_t i;
 	for(i = 0; i < file_size; i++)
@@ -217,13 +221,19 @@ Value* SILT::Sorted_store<Value>::get_value(const SILT_key& key) const
 			PRINT_UINT_32(file_size));
 			break;
 		}
-	}
+	}*/
 
-	assert(trie_buckets[0].get_offset(key) < file_size);
+	// Zwracanie wartości używając indeksowania drzewami Trie
+	// TODO (dodanie wielu kubełków)
+	/*assert(trie_buckets[0].get_offset(key) < file_size);
 	DEBUG(PRINT_UINT_32(trie_buckets[0].get_offset(key)));
 	fseek(sorted_store_file, trie_buckets[0].get_offset(key)
+	* sorted_store_entry_size, SEEK_SET);*/
+	assert(trie->get_offset(key) < file_size);
+	DEBUG(PRINT_UINT_32(trie->get_offset(key)));
+	fseek(sorted_store_file, trie->get_offset(key)
 	* sorted_store_entry_size, SEEK_SET);
-	//SILT_key key_to_match;
+	SILT_key key_to_match;
 	if(fread((void*) &key_to_match, sizeof(SILT_key), 1, sorted_store_file)
 	!= 1)
 	{
@@ -232,7 +242,6 @@ Value* SILT::Sorted_store<Value>::get_value(const SILT_key& key) const
 	}
 	if(key != key_to_match)
 	{
-		DEBUG(PRINT_TEXT("Bardzo źle\n\n"));
 		return nullptr;
 	}
 	Value* returned_value = new Value();
@@ -242,6 +251,8 @@ Value* SILT::Sorted_store<Value>::get_value(const SILT_key& key) const
 		exit(1);
 	}
 	return returned_value;
+
+	// Zwracanie wartości bez indeksowania drzewami Trie
 	/*SILT_key key_to_match;
 	Value* returned_value;
 	fseek(sorted_store_file, 0, SEEK_SET);

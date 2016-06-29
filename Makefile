@@ -3,10 +3,18 @@ ERRORSFLAGS=-Wall -Wextra -Werror -O2
 STANDARDFLAGS=-std=c++11
 LIBRARIES=-lm
 CODE_DIRECTORY=code
-_RANDOM_GENERATOR=random_generator.py
-RANDOM_GENERATOR=$(CODE_DIRECTORY)/$(_RANDOM_GENERATOR)
-_RANDOM_DATA=random_data.txt
-RANDOM_DATA=$(CODE_DIRECTORY)/$(_RANDOM_DATA)
+_RANDOM_GENERATOR_SMALL=random_generator_small.py
+RANDOM_GENERATOR_SMALL=$(CODE_DIRECTORY)/$(_RANDOM_GENERATOR_SMALL)
+_RANDOM_DATA_SMALL=random_data_small.txt
+RANDOM_DATA_SMALL=$(CODE_DIRECTORY)/$(_RANDOM_DATA_SMALL)
+_RANDOM_GENERATOR_MEDIUM=random_generator_medium.py
+RANDOM_GENERATOR_MEDIUM=$(CODE_DIRECTORY)/$(_RANDOM_GENERATOR_MEDIUM)
+_RANDOM_DATA_MEDIUM=random_data_medium.txt
+RANDOM_DATA_MEDIUM=$(CODE_DIRECTORY)/$(_RANDOM_DATA_MEDIUM)
+_RANDOM_GENERATOR_LARGE=random_generator_large.py
+RANDOM_GENERATOR_LARGE=$(CODE_DIRECTORY)/$(_RANDOM_GENERATOR_LARGE)
+_RANDOM_DATA_LARGE=random_data_large.txt
+RANDOM_DATA_LARGE=$(CODE_DIRECTORY)/$(_RANDOM_DATA_LARGE)
 _DEPENDENCIES=debug.hpp SILT_key.hpp SILT_key.tpp Small_Index_Large_Table.hpp Small_Index_Large_Table.tpp Log_store.hpp Log_store.tpp Hash_store.hpp Hash_store.tpp Merge_heap.hpp Sorted_store.hpp Sorted_store.tpp Trie.hpp Trie.tpp
 DEPENDENCIES=$(patsubst %,$(CODE_DIRECTORY)/%,$(_DEPENDENCIES))
 _SOURCES=main.cpp Merge_heap.cpp
@@ -27,8 +35,9 @@ all: cpp tex
 cpp: py $(EXECUTABLE)
 
 py:
-	if [ ! -f $(RANDOM_DATA) ]; then $(RANDOM_GENERATOR) > $(RANDOM_DATA); fi
-
+	if [ ! -f $(RANDOM_DATA_SMALL) ]; then $(RANDOM_GENERATOR_SMALL) > $(RANDOM_DATA_SMALL); fi;\
+	if [ ! -f $(RANDOM_DATA_MEDIUM) ]; then $(RANDOM_GENERATOR_MEDIUM) > $(RANDOM_DATA_MEDIUM); fi;\
+	if [ ! -f $(RANDOM_DATA_LARGE) ]; then $(RANDOM_GENERATOR_LARGE) > $(RANDOM_DATA_LARGE); fi
 $(EXECUTABLE): $(OBJECTS)
 	if [ ! -d $(BINARY_FILE_DIRECTORY) ]; then mkdir $(BINARY_FILE_DIRECTORY); fi;\
 	$(COMPILER) $(STANDARDFLAGS) $(ERRORSFLAGS) $^ -o $@ $(LIBRARIES)
@@ -61,7 +70,9 @@ clean:
 	find . -name "*.save" -type f -exec rm '{}' \;
 	find . -name "*.log" -type f -exec rm '{}' \;
 	find . -name "*.dat" -type f -exec rm '{}' \;
-	- rm $(RANDOM_DATA)
+	- rm $(RANDOM_DATA_SMALL)
+	- rm $(RANDOM_DATA_MEDIUM)
+	- rm $(RANDOM_DATA_LARGE)
 	- rmdir $(OBJECTS_DIRECTORY)
 	- rm $(EXECUTABLE)
 	- rmdir $(BINARY_FILE_DIRECTORY)

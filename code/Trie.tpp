@@ -18,10 +18,6 @@ SILT::Trie<Value>::Trie(FILE* const sorted_store_file, uint32_t file_size)
 	load_file_content_to_array();
 	build_trie(0, 0, file_size);
 	DEBUG(PRINT_UINT_32(representation_size));
-	/*for(uint32_t i = 0; i < representation_size; i++)
-	{
-		DEBUG(PRINT_UINT_32(representation[i]));
-	}*/
 	delete[] array_to_be_indexed;
 }
 

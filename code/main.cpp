@@ -5,110 +5,343 @@
 	wysoce wydajnej tablicy asocjacyjnej SILT (Small Index Large Table)
 */
 
+#include "debug.hpp"
+#include <chrono>
 #include "Small_Index_Large_Table.hpp"
+#include <unordered_map>
 
-#include "SILT_key.hpp"
-
-#define NORMAL
-//#define TEST1
-//#define TEST2
+void test_SILT_small(void);
+void test_SILT_medium(void);
+void test_SILT_large(void);
+void test_STL_small(void);
+void test_STL_medium(void);
+void test_STL_large(void);
 
 int main()
 {
-	#ifdef NORMAL
-	SILT::Small_Index_Large_Table<uint32_t, double>* silt
-	= new SILT::Small_Index_Large_Table<uint32_t, double>();
-	FILE* file = fopen("random_data.txt", "r");
+	std::chrono::high_resolution_clock::time_point t1, t2;
+	std::chrono::duration<double> time_span;
+
+	t1 = std::chrono::high_resolution_clock::now();
+	test_SILT_small();
+	t2 = std::chrono::high_resolution_clock::now();
+	time_span
+	= std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	printf("Small SILT: %lf\n", time_span.count());
+
+	t1 = std::chrono::high_resolution_clock::now();
+	test_SILT_medium();
+	t2 = std::chrono::high_resolution_clock::now();
+	time_span
+	= std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	printf("Medium SILT: %lf\n", time_span.count());
+
+	t1 = std::chrono::high_resolution_clock::now();
+	test_SILT_large();
+	t2 = std::chrono::high_resolution_clock::now();
+	time_span
+	= std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	printf("Large SILT: %lf\n", time_span.count());
+
+	t1 = std::chrono::high_resolution_clock::now();
+	test_STL_small();
+	t2 = std::chrono::high_resolution_clock::now();
+	time_span
+	= std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	printf("Small STL map: %lf\n", time_span.count());
+
+	t1 = std::chrono::high_resolution_clock::now();
+	test_STL_medium();
+	t2 = std::chrono::high_resolution_clock::now();
+	time_span
+	= std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	printf("Medium STL map: %lf\n", time_span.count());
+
+	t1 = std::chrono::high_resolution_clock::now();
+	test_STL_large();
+	t2 = std::chrono::high_resolution_clock::now();
+	time_span
+	= std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1);
+	printf("Large STL map: %lf\n", time_span.count());
+
+	return 0;
+}
+
+void test_SILT_small(void)
+{
+	SILT::Small_Index_Large_Table<int32_t, double>* silt
+	= new SILT::Small_Index_Large_Table<int32_t, double>();
+	FILE* file = fopen("random_data_small.txt", "r");
 	int32_t key;
 	double value;
-	for(uint32_t i = 0; i < 1050000; i++)
+	int32_t first_key;
+	if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+	{
+		silt->insert(key, value);
+		first_key = key;
+	}
+	else
+	{
+		fprintf(stderr, "fscanf error\n");
+		exit(1);
+	}
+	for(uint32_t i = 1; i < 50000; i++)
 	{
 		if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
 		{
 			silt->insert(key, value);
 		}
+		else
+		{
+			fprintf(stderr, "fscanf error\n");
+			exit(1);
+		}
 	}
 
-	double* d = (*silt)[1444503063];
+	double* d = (*silt)[first_key];
 	if(d != nullptr)
 		printf("%lf\n", *d);
 	else
 		printf("Key not found\n");
 	fclose(file);
 	delete silt;
-	#endif
-	#ifdef TEST1
-	FILE* file = fopen("aaa.dat", "wb+");
-	fseek(file, 0, SEEK_SET);
-	SILT::SILT_key key;
-	double value = 7;
-	key.h0 = 0x80000000;
-	key.h1 = 0;
-	key.h2 = 0;
-	key.h3 = 0;
-	key.h4 = 0;
-	fwrite(&key, sizeof(SILT::SILT_key), 1, file);
-	fwrite(&value, sizeof(double), 1, file);
-	key.h0 = 0x90000000;
-	fwrite(&key, sizeof(SILT::SILT_key), 1, file);
-	fwrite(&value, sizeof(double), 1, file);
-	key.h0 = 0xA0000000;
-	fwrite(&key, sizeof(SILT::SILT_key), 1, file);
-	fwrite(&value, sizeof(double), 1, file);
-	key.h0 = 0xC0000000;
-	fwrite(&key, sizeof(SILT::SILT_key), 1, file);
-	fwrite(&value, sizeof(double), 1, file);
-	key.h0 = 0xD0000000;
-	fwrite(&key, sizeof(SILT::SILT_key), 1, file);
-	fwrite(&value, sizeof(double), 1, file);
-	key.h0 = 0xD8000000;
-	fwrite(&key, sizeof(SILT::SILT_key), 1, file);
-	fwrite(&value, sizeof(double), 1, file);
-	key.h0 = 0xE0000000;
-	fwrite(&key, sizeof(SILT::SILT_key), 1, file);
-	fwrite(&value, sizeof(double), 1, file);
-	key.h0 = 0xE8000000;
-	fwrite(&key, sizeof(SILT::SILT_key), 1, file);
-	fwrite(&value, sizeof(double), 1, file);
-	key.h0 = 0xF0000000;
-	fwrite(&key, sizeof(SILT::SILT_key), 1, file);
-	fwrite(&value, sizeof(double), 1, file);
-	key.h0 = 0xF8000000;
-	fwrite(&key, sizeof(SILT::SILT_key), 1, file);
-	fwrite(&value, sizeof(double), 1, file);
-	SILT::Trie<double>* trie = new SILT::Trie<double>(file, 10);
-	printf("%" PRIu32 "\n", trie->get_offset(key));
-	delete trie;
-	#endif
-	#ifdef TEST2
-	FILE* file = fopen("aaa.dat", "wb+");
-	fseek(file, 0, SEEK_SET);
-	SILT::SILT_key key;
-	double value = 7;
-	key.h0 = 0;
-	key.h1 = 0;
-	key.h2 = 0;
-	key.h3 = 0;
-	key.h4 = 0;
+}
 
-	uint32_t number = 0;
-	uint32_t which = 0;
-	for(uint32_t i = 0; i < 65535; i++)
+void test_SILT_medium(void)
+{
+	SILT::Small_Index_Large_Table<int32_t, double>* silt
+	= new SILT::Small_Index_Large_Table<int32_t, double>();
+	FILE* file = fopen("random_data_medium.txt", "r");
+	int32_t key;
+	double value;
+	int32_t first_key;
+	if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
 	{
-		if(i % 7 == 0 || i % 5 == 0)
-			continue;
-		if(i == 33333)
-			which = number;
-		number++;
-		key.h0 = i << 16;
-		fwrite(&key, sizeof(SILT::SILT_key), 1, file);
-		fwrite(&value, sizeof(double), 1, file);
+		silt->insert(key, value);
+		first_key = key;
 	}
-	key.h0 = 33333 << 16;
-	SILT::Trie<double>* trie = new SILT::Trie<double>(file, number);
-	printf("%" PRIu32 "\n", trie->get_offset(key));
-	DEBUG(PRINT_UINT_32(which));
-	delete trie;
-	#endif
-	return 0;
+	else
+	{
+		fprintf(stderr, "fscanf error\n");
+		exit(1);
+	}
+	for(uint32_t i = 1; i < 530000; i++)
+	{
+		if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+		{
+			silt->insert(key, value);
+		}
+		else
+		{
+			fprintf(stderr, "fscanf error\n");
+			exit(1);
+		}
+	}
+
+	double* d = (*silt)[first_key];
+	if(d != nullptr)
+		printf("%lf\n", *d);
+	else
+		printf("Key not found\n");
+	fclose(file);
+	delete silt;
+}
+
+void test_SILT_large(void)
+{
+	SILT::Small_Index_Large_Table<int32_t, double>* silt
+	= new SILT::Small_Index_Large_Table<int32_t, double>();
+	FILE* file = fopen("random_data_large.txt", "r");
+	int32_t key;
+	double value;
+	int32_t first_key;
+	if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+	{
+		silt->insert(key, value);
+		first_key = key;
+	}
+	else
+	{
+		fprintf(stderr, "fscanf error\n");
+		exit(1);
+	}
+	for(uint32_t i = 1; i < 1050000; i++)
+	{
+		if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+		{
+			silt->insert(key, value);
+		}
+		else
+		{
+			fprintf(stderr, "fscanf error\n");
+			exit(1);
+		}
+	}
+
+	double* d = (*silt)[first_key];
+	if(d != nullptr)
+		printf("%lf\n", *d);
+	else
+		printf("Key not found\n");
+	fclose(file);
+	delete silt;
+}
+
+void test_STL_small(void)
+{
+	std::unordered_map<int32_t, uint32_t>* map
+	= new std::unordered_map<int32_t, uint32_t>();
+	FILE* file = fopen("random_data_small.txt", "r");
+	int32_t key;
+	double value;
+	int32_t first_key;
+	if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+	{
+		(*map)[key] = 0;
+		first_key = key;
+	}
+	else
+	{
+		fprintf(stderr, "fscanf error\n");
+		exit(1);
+	}
+	for(uint32_t i = 1; i < 50000; i++)
+	{
+		if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+		{
+			(*map)[key] = i;
+		}
+		else
+		{
+			fprintf(stderr, "fscanf error\n");
+			exit(1);
+		}
+	}
+	fclose(file);
+	file = fopen("random_data_small.txt", "r");
+
+	uint32_t offset = (*map)[first_key];
+	double d;
+	fseek(file, 0, SEEK_SET);
+	for(uint32_t i = 0; i <= offset; i++)
+	{
+		if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+		{
+			d = value;
+		}
+		else
+		{
+			fprintf(stderr, "fscanf error\n");
+			exit(1);
+		}
+	}
+	printf("%lf\n", d);
+	fclose(file);
+	delete map;
+}
+
+void test_STL_medium(void)
+{
+	std::unordered_map<int32_t, uint32_t>* map
+	= new std::unordered_map<int32_t, uint32_t>();
+	FILE* file = fopen("random_data_medium.txt", "r");
+	int32_t key;
+	double value;
+	int32_t first_key;
+	if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+	{
+		(*map)[key] = 0;
+		first_key = key;
+	}
+	else
+	{
+		fprintf(stderr, "fscanf error\n");
+		exit(1);
+	}
+	for(uint32_t i = 1; i < 530000; i++)
+	{
+		if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+		{
+			(*map)[key] = i;
+		}
+		else
+		{
+			fprintf(stderr, "fscanf error\n");
+			exit(1);
+		}
+	}
+	fclose(file);
+	file = fopen("random_data_medium.txt", "r");
+
+	uint32_t offset = (*map)[first_key];
+	double d;
+	fseek(file, 0, SEEK_SET);
+	for(uint32_t i = 0; i <= offset; i++)
+	{
+		if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+		{
+			d = value;
+		}
+		else
+		{
+			fprintf(stderr, "fscanf error\n");
+			exit(1);
+		}
+	}
+	printf("%lf\n", d);
+	fclose(file);
+	delete map;
+}
+
+void test_STL_large(void)
+{
+	std::unordered_map<int32_t, uint32_t>* map
+	= new std::unordered_map<int32_t, uint32_t>();
+	FILE* file = fopen("random_data_large.txt", "r");
+	int32_t key;
+	double value;
+	int32_t first_key;
+	if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+	{
+		(*map)[key] = 0;
+		first_key = key;
+	}
+	else
+	{
+		fprintf(stderr, "fscanf error\n");
+		exit(1);
+	}
+	for(uint32_t i = 1; i < 1050000; i++)
+	{
+		if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+		{
+			(*map)[key] = i;
+		}
+		else
+		{
+			fprintf(stderr, "fscanf error\n");
+			exit(1);
+		}
+	}
+	fclose(file);
+	file = fopen("random_data_large.txt", "r");
+
+	uint32_t offset = (*map)[first_key];
+	double d;
+	fseek(file, 0, SEEK_SET);
+	for(uint32_t i = 0; i <= offset; i++)
+	{
+		if(fscanf(file, "%" SCNd32 "%lf", &key, &value))
+		{
+			d = value;
+		}
+		else
+		{
+			fprintf(stderr, "fscanf error\n");
+			exit(1);
+		}
+	}
+	printf("%lf\n", d);
+	fclose(file);
+	delete map;
 }
